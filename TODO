@@ -1,4 +1,5 @@
 ###NNLM
 
+- code to evaluate/test the language model
 - understand hierarchical softmax: is it enough to build up a tree (balanced?), and then associate every word a binary vector of its path in that tree?
 - other improvements in the paper?
