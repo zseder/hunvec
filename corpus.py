@@ -47,12 +47,6 @@ class Corpus(object):
                     s[i] = vocab[w_str]
         vocab[n] = "RARE"
         self.vocab = vocab
-        for s in self.corpus:
-            for w in s:
-                if w > n + 1:
-                    print s
-                    quit()
-
 
     def iterate_ngram_training(self, n=3):
         for s in self.corpus:
@@ -73,8 +67,12 @@ class Corpus(object):
         training = round(total * ratios[0])
         valid = training + round(total * ratios[1])
         #test = total - training - valid
-        training_data = DenseDesignMatrix(X=X[:training, :], y=y[:training], X_labels=len(self.vocab), y_labels=len(self.vocab))
+        labels = len(self.vocab)
+        training_data = DenseDesignMatrix(X=X[:training, :], y=y[:training],
+                                          X_labels=labels, y_labels=labels)
         valid_data = DenseDesignMatrix(X=X[training:valid, :],
-                                       y=y[training:valid], X_labels=len(self.vocab), y_labels=len(self.vocab))
-        test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:], X_labels=len(self.vocab), y_labels=len(self.vocab))
+                                       y=y[training:valid], X_labels=labels,
+                                       y_labels=labels)
+        test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:],
+                                      X_labels=labels, y_labels=labels)
         return training_data, valid_data, test_data
