@@ -11,7 +11,7 @@ from corpus import Corpus
 
 
 class NNLM(object):
-    def __init__(self, hidden_dim=100, window_size=5, embedding_dim=50):
+    def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
@@ -28,7 +28,8 @@ class NNLM(object):
 
         # sparse_init=15?
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.01)
-        output = Softmax(layer_name='softmax', n_classes=self.vocab_size, irange=0.,
+        output = Softmax(layer_name='softmax',
+                         n_classes=self.vocab_size, irange=0.,
                          binary_target_dim=1)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
@@ -53,6 +54,7 @@ class NNLM(object):
 def main():
     nnlm = NNLM()
     corpus = Corpus.read_corpus(sys.argv[1])
+    corpus.filter_freq(1000)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
