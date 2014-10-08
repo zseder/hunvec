@@ -1,4 +1,7 @@
+from collections import defaultdict
+
 import numpy
+
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 
@@ -23,12 +26,33 @@ class Corpus(object):
             corpus.append(s)
         return Corpus(corpus, vocab)
 
-    def compute_vocab(self):
-        self.vocab = {}
+    def filter_freq(self, n=10000):
+        freq = defaultdict(int)
         for s in self.corpus:
             for w in s:
-                if w not in self.vocab:
-                    self.vocab[w] = len(self.vocab)
+                freq[w] += 1
+        needed = sorted(freq.iteritems(), key=lambda x: x[1], reverse=True)[:n]
+        needed = set(k for k, v in needed)
+        words = [w for w, i in
+                 sorted(self.vocab.iteritems(), key=lambda x: x[1])]
+        vocab = {}
+        for s in self.corpus:
+            for i in xrange(len(s)):
+                if s[i] not in needed:
+                    s[i] = n
+                else:
+                    w_str = words[s[i]]
+                    if w_str not in vocab:
+                        vocab[w_str] = len(vocab)
+                    s[i] = vocab[w_str]
+        vocab[n] = "RARE"
+        self.vocab = vocab
+        for s in self.corpus:
+            for w in s:
+                if w > n + 1:
+                    print s
+                    quit()
+
 
     def iterate_ngram_training(self, n=3):
         for s in self.corpus:
