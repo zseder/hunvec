@@ -66,7 +66,7 @@ def main():
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
-    nnlm.create_training_problem()
+    nnlm.create_training_problem(sys.argv[2])
     nnlm.trainer.main_loop()
 
 
