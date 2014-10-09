@@ -1,5 +1,6 @@
 ###NNLM
 
 - code to evaluate/test the language model
-- understand hierarchical softmax: is it enough to build up a tree (balanced?), and then associate every word a binary vector of its path in that tree?
+- understand hierarchical softmax: how does it look like compared to a layer of an MLP?
+- understand negative sampling and NCE: can this be faster (and/or easier to implement in pylearn2) than HS?
 - other improvements in the paper?
