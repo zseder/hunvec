@@ -60,9 +60,9 @@ class NNLM(object):
 
 
 def main():
-    nnlm = NNLM()
+    nnlm = NNLM(hidden_dim=50, embedding_dim=20, max_epochs=40)
     corpus = Corpus.read_corpus(sys.argv[1])
-    corpus.filter_freq(10000)
+    corpus.filter_freq(5000)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
