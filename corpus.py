@@ -58,7 +58,12 @@ class Corpus(object):
     def get_matrices(self, n=3, ratios=[.7, .15, .15]):
         X = []
         y = []
+        num_labels = len(self.vocab)
+        rare = num_labels - 1
         for ngr, w in self.iterate_ngram_training(n):
+            # skip rare words in ngrams and in label too
+            if w == rare or rare in ngr:
+                continue
             X.append(ngr)
             y.append([w])
         X = numpy.array(X)
@@ -67,12 +72,14 @@ class Corpus(object):
         training = round(total * ratios[0])
         valid = training + round(total * ratios[1])
         #test = total - training - valid
-        labels = len(self.vocab)
         training_data = DenseDesignMatrix(X=X[:training, :], y=y[:training],
-                                          X_labels=labels, y_labels=labels)
+                                          X_labels=num_labels,
+                                          y_labels=num_labels)
         valid_data = DenseDesignMatrix(X=X[training:valid, :],
-                                       y=y[training:valid], X_labels=labels,
-                                       y_labels=labels)
+                                       y=y[training:valid],
+                                       X_labels=num_labels,
+                                       y_labels=num_labels)
         test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:],
-                                      X_labels=labels, y_labels=labels)
+                                      X_labels=num_labels,
+                                      y_labels=num_labels)
         return training_data, valid_data, test_data
