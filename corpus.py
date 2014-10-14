@@ -1,4 +1,5 @@
 from collections import defaultdict
+from random import shuffle
 
 import numpy
 
@@ -26,12 +27,13 @@ class Corpus(object):
             corpus.append(s)
         return Corpus(corpus, vocab)
 
-    def filter_freq(self, n=10000):
+    def filter_freq(self, lower_n=0, n=10000):
         freq = defaultdict(int)
         for s in self.corpus:
             for w in s:
                 freq[w] += 1
-        needed = sorted(freq.iteritems(), key=lambda x: x[1], reverse=True)[:n]
+        needed = sorted(freq.iteritems(), key=lambda x: x[1], reverse=True)
+        needed = needed[lower_n:lower_n+n]
         needed = set(k for k, v in needed)
         words = [w for w, i in
                  sorted(self.vocab.iteritems(), key=lambda x: x[1])]
@@ -61,22 +63,30 @@ class Corpus(object):
         num_labels = len(self.vocab)
         rare = num_labels - 1
         for ngr, w in self.iterate_ngram_training(n):
-            # skip rare words in ngrams and in label too
-            if w == rare or rare in ngr:
+            # skip rare words in labels
+            if w == rare:
+                continue
+            # skip ngrams with multiple (rare) words
+            if len(set(ngr)) < len(ngr):
                 continue
             X.append(ngr)
             y.append([w])
         X = numpy.array(X)
         y = numpy.array(y)
         total = len(y)
-        training = round(total * ratios[0])
-        valid = training + round(total * ratios[1])
+        indices = range(total)
+        shuffle(indices)
+        training = int(round(total * ratios[0]))
+        valid = int(round(total * ratios[1]))
+        training_indices = indices[:training]
+        valid_indices = indices[training:training + valid]
         #test = total - training - valid
-        training_data = DenseDesignMatrix(X=X[:training, :], y=y[:training],
+        training_data = DenseDesignMatrix(X=X[training_indices, :],
+                                          y=y[training_indices],
                                           X_labels=num_labels,
                                           y_labels=num_labels)
-        valid_data = DenseDesignMatrix(X=X[training:valid, :],
-                                       y=y[training:valid],
+        valid_data = DenseDesignMatrix(X=X[valid_indices, :],
+                                       y=y[valid_indices],
                                        X_labels=num_labels,
                                        y_labels=num_labels)
         test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:],
