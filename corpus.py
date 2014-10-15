@@ -48,6 +48,7 @@ class Corpus(object):
                         vocab[w_str] = len(vocab)
                     s[i] = vocab[w_str]
         vocab[n] = "RARE"
+
         self.vocab = vocab
 
     def iterate_ngram_training(self, n=3):
