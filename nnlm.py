@@ -1,19 +1,21 @@
 import sys
 
 from pylearn2.space import IndexSpace
-from pylearn2.models.mlp import MLP, Tanh
+from pylearn2.models.mlp import MLP, Tanh, RectifiedLinear
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
+from pylearn2.costs.cost import SumOfCosts
+from pylearn2.costs.mlp import Default, WeightDecay
 
 from corpus import Corpus
 
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
-                 optimize_for='valid_softmax_nll', max_epochs=10000):
+                 optimize_for='valid_softmax_ppl', max_epochs=10000):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
@@ -29,12 +31,13 @@ class NNLM(object):
 
         input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
+        h1 = RectifiedLinear(layer_name='h1', dim=self.edim, irange=.1)
         output = Softmax(layer_name='softmax', binary_target_dim=1,
                          n_classes=self.vocab_size, irange=0.1)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
-        model = MLP(layers=[input_, h0, output],
+        model = MLP(layers=[input_, h0, h1, output],
                     input_space=input_space)
         self.model = model
 
@@ -43,9 +46,11 @@ class NNLM(object):
                                  prop_decrease=0., N=10)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
+        weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
+        cost = SumOfCosts(costs=[Default(), weightdecay])
         self.algorithm = SGD(batch_size=64, learning_rate=.1,
                              monitoring_dataset=self.alg_datasets,
-                             termination_criterion=term)
+                             termination_criterion=term, cost=cost)
 
     def create_training_problem(self, save_best_path):
         ext1 = MonitorBasedSaveBest(channel_name=self.optimize_for,
