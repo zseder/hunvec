@@ -1,6 +1,6 @@
 ###NNLM
 
-- code to evaluate/test the language model
+- ability to train on big corpus: read part of the corpus, train, read other part, train more, etc.
 - understand hierarchical softmax: how does it look like compared to a layer of an MLP?
 - understand negative sampling and NCE: can this be faster (and/or easier to implement in pylearn2) than HS?
 - other improvements in the paper?
