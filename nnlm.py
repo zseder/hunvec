@@ -27,13 +27,10 @@ class NNLM(object):
 
     def create_model(self):
 
-        # input will be projected. ProjectionLayer? MatrixMul? IndexSpace?
-        input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.)
-
-        # sparse_init=15?
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.01)
+        input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
+        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
         output = Softmax(layer_name='softmax', binary_target_dim=1,
-                         n_classes=self.vocab_size, irange=0.)
+                         n_classes=self.vocab_size, irange=0.1)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
@@ -46,7 +43,7 @@ class NNLM(object):
                                  prop_decrease=0., N=10)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
-        self.algorithm = SGD(batch_size=256, learning_rate=.1,
+        self.algorithm = SGD(batch_size=64, learning_rate=.1,
                              monitoring_dataset=self.alg_datasets,
                              termination_criterion=term)
 
@@ -59,9 +56,9 @@ class NNLM(object):
 
 
 def main():
-    nnlm = NNLM(hidden_dim=40, embedding_dim=20, max_epochs=100, window_size=3)
+    nnlm = NNLM(hidden_dim=80, embedding_dim=40, max_epochs=100, window_size=3)
     corpus = Corpus.read_corpus(sys.argv[1])
-    corpus.filter_freq(n=2000)
+    corpus.filter_freq(n=5000)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
