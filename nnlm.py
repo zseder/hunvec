@@ -2,7 +2,7 @@ import sys
 import logging
 
 from pylearn2.space import IndexSpace
-from pylearn2.models.mlp import MLP, Tanh, RectifiedLinear
+from pylearn2.models.mlp import MLP, Tanh
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
