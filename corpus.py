@@ -11,7 +11,7 @@ class Corpus(object):
         self.vocab = {}
         self.bs = batch_size
         self.ws = window_size
-        self.top_n = 10000
+        self.top_n = top_n
         self.needed = self.get_freq_words(fn)
         self.f = open(fn)
         self.eof = False
