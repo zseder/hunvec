@@ -1,4 +1,4 @@
-from collections import defaultdict
+import logging
 from random import shuffle
 
 import numpy
@@ -42,18 +42,19 @@ class Corpus(object):
                         self.vocab[w] = -1
             s = [self.vocab[w] for w in s]
             for ngr, y in self.sentence_ngrams(s):
-                if y not in self.needed:
+                if y == -1 or y > len(self.needed):
                     continue
                 if len(set(ngr)) < self.ws:
                     continue
                 X.append(ngr)
-                Y.append(y)
+                Y.append([y])
                 c += 1
             if c >= self.bs:
                 break
-        if len(c) < self.bs:
+        if c < self.bs:
             # end of file
             self.eof = True
+            logging.info("End of file")
 
         return X, Y
 
