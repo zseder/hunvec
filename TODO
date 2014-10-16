@@ -1,6 +1,6 @@
 ###NNLM
 
-- hierarchical softmax: assumption: 1 + 2 + ... + 2^(log|V|-1) unit Sigmoid layer can do it if we transform input words into a binary representation, and put that binary representation into y, and change cost function in order to compute cost for only those units that have 1 in y
+- hierarchical softmax: assumption: 1 + 2 + ... + 2^(log|V|-1) unit Sigmoid layer can do it if we transform input words into a binary representation, and put that binary representation into y, and change cost function in order to compute cost for only those units that have 1 in y. for this, mlp.Sigmoid.kl should be overridden to return something like 'elemwise_kl() if y[i] == 1'
 - not to read whole corpus: done. TODO: read the file again, until there is no batch which gives any improvement. For this, there should be another validation set?
 - understand negative sampling and NCE: can this be faster (and/or easier to implement in pylearn2) than HS?
 - other improvements in the paper?
