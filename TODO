@@ -1,7 +1,6 @@
 ###NNLM
 
-- is there an other embedding layer after TanH, before Softmax, that no one talks about? If not, how is v'_{w_o}^T * v_{w_i} is computed?
-- hierarchical softmax: instead of softmax, log(V) number of Sigmoid function in a flat layer? This needs the previous question be answered, to know whether we need another embedding layer with log(V) embeddings
+- hierarchical softmax: assumption: 1 + 2 + ... + 2^(log|V|-1) unit Sigmoid layer can do it if we transform input words into a binary representation
 - not to read whole corpus: done. TODO: read the file again, until there is no batch which gives any improvement. For this, there should be another validation set?
 - understand negative sampling and NCE: can this be faster (and/or easier to implement in pylearn2) than HS?
 - other improvements in the paper?
