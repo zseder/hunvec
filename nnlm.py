@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from pylearn2.space import IndexSpace
 from pylearn2.models.mlp import MLP, Tanh, RectifiedLinear
@@ -40,43 +41,55 @@ class NNLM(object):
                     input_space=input_space)
         self.model = model
 
-    def create_algorithm(self, monitoring_dataset):
+    def create_algorithm(self, dataset):
         cost_crit = MonitorBased(channel_name=self.optimize_for,
                                  prop_decrease=0., N=2)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
-        weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
-        cost = SumOfCosts(costs=[Default(), weightdecay])
+        # TODO: weightdecay with projection layer?
+        #weightdecay = WeightDecay(coeffs=[None, 5e-5, 5e-5, 5e-5])
+        #cost = SumOfCosts(costs=[Default(), weightdecay])
         self.algorithm = SGD(batch_size=64, learning_rate=.1,
-                             monitoring_dataset=monitoring_dataset,
-                             termination_criterion=term, cost=cost)
+                             monitoring_dataset=dataset,
+                             termination_criterion=term)
 
-    def create_training_problem(self, training_dataset, save_best_path):
+    def create_training_problem(self, dataset, save_best_path):
         ext1 = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                     save_path=save_best_path)
-        trainer = Train(dataset=training_dataset, model=self.model,
+        trainer = Train(dataset=dataset['train'], model=self.model,
                         algorithm=self.algorithm, extensions=[ext1])
         self.trainer = trainer
 
     def create_batch_trainer(self, save_best_path):
-        del self.trainer, self.algorithm
-        self.create_model()
         dataset = self.corpus.create_batch_matrices()
         if dataset is None:
+            if hasattr(self, "trainer"):
+                del self.trainer
             return None
-        self.create_algorithm(dataset[1])
-        self.create_training_problem(dataset[0], save_best_path)
+        if hasattr(self.model, 'monitor'):
+            del self.model.monitor
+            del self.trainer
+            del self.algorithm
+            del self.model.tag["MonitorBasedSaveBest"]
+        d = {'train': dataset[0], 'valid': dataset[1], 'test': dataset[2]}
+        self.create_algorithm(d)
+        self.create_training_problem(d, save_best_path)
 
 
 def main():
-    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=100, window_size=5)
-    corpus = Corpus(sys.argv[1])
+    logging.basicConfig(level=logging.INFO)
+    nnlm = NNLM(hidden_dim=128, embedding_dim=64, max_epochs=20, window_size=3)
+    corpus = Corpus(sys.argv[1], batch_size=1000, window_size=3)
     nnlm.add_corpus(corpus)
+    nnlm.create_model()
+    c = 1
     while True:
+        logging.info("{0}. batch started".format(c))
         nnlm.create_batch_trainer(sys.argv[2])
         if not hasattr(nnlm, 'trainer'):
             break
         nnlm.trainer.main_loop()
+        c += 1
 
 
 if __name__ == "__main__":
