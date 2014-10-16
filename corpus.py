@@ -7,71 +7,69 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 
 class Corpus(object):
-    def __init__(self, sentences, vocab):
-        self.corpus = sentences
-        self.vocab = vocab
+    def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000):
+        self.vocab = {}
+        self.bs = batch_size
+        self.ws = window_size
+        self.top_n = 10000
+        self.needed = self.get_freq_words(fn)
+        self.f = open(fn)
+        self.eof = False
 
-    @staticmethod
-    def read_corpus(path):
-        f = open(path)
-
-        corpus = []
-        vocab = {}
-        for l in f:
+    def get_freq_words(self, fn):
+        v = {}
+        for l in open(fn):
             l = l.decode("utf-8")
             s = l.split()
             for w in s:
-                if w not in vocab:
-                    vocab[w] = len(vocab)
-            s = [vocab[w] for w in s]
-            corpus.append(s)
-        return Corpus(corpus, vocab)
+                v[w] = v.get(w, 0) + 1
+        needed = sorted(v.iteritems(), key=lambda x: -x[1])[:self.top_n]
+        return set(w for w, _ in needed)
 
-    def filter_freq(self, lower_n=0, n=10000):
-        freq = defaultdict(int)
-        for s in self.corpus:
+    def read_batch(self):
+        if self.eof:
+            return
+        c = 0
+        X, Y = [], []
+        for l in self.f:
+            l = l.decode("utf-8")
+            s = l.split()
             for w in s:
-                freq[w] += 1
-        needed = sorted(freq.iteritems(), key=lambda x: x[1], reverse=True)
-        needed = needed[lower_n:lower_n+n]
-        needed = set(k for k, v in needed)
-        words = [w for w, i in
-                 sorted(self.vocab.iteritems(), key=lambda x: x[1])]
-        vocab = {}
-        for s in self.corpus:
-            for i in xrange(len(s)):
-                if s[i] not in needed:
-                    s[i] = n
-                else:
-                    w_str = words[s[i]]
-                    if w_str not in vocab:
-                        vocab[w_str] = len(vocab)
-                    s[i] = vocab[w_str]
-        vocab[n] = "RARE"
+                if w not in self.vocab:
+                    if w in self.needed:
+                        self.vocab[w] = len(self.vocab)
+                    else:
+                        self.vocab[w] = -1
+            s = [self.vocab[w] for w in s]
+            for ngr, y in self.sentence_ngrams(s):
+                if y not in self.needed:
+                    continue
+                if len(set(ngr)) < self.ws:
+                    continue
+                X.append(ngr)
+                Y.append(y)
+                c += 1
+            if c >= self.bs:
+                break
+        if len(c) < self.bs:
+            # end of file
+            self.eof = True
 
-        self.vocab = vocab
+        return X, Y
 
-    def iterate_ngram_training(self, n=3):
-        for s in self.corpus:
-            for i in xrange(len(s) - n):
-                ngr = s[i:i+n]
-                y = s[i+n]
-                yield ngr, y
+    def sentence_ngrams(self, s):
+        n = self.ws
+        for i in xrange(len(s) - n):
+            ngr = s[i:i+n]
+            y = s[i+n]
+            yield ngr, y
 
-    def get_matrices(self, n=3, ratios=[.7, .15, .15]):
-        X = []
-        y = []
-        num_labels = len(self.vocab)
-        rare = num_labels - 1
-        for ngr, w in self.iterate_ngram_training(n):
-            # skip rare words in labels
-            if w == rare:
-                continue
-            # skip ngrams with multiple (rare) words
-            if len(set(ngr)) < len(ngr):
-                continue
-            X.append(ngr)
-            y.append([w])
+    def create_batch_matrices(self, ratios=[.7, .15, .15]):
+        res = self.read_batch()
+        if res is None:
+            return None
+        X, y = res
+        num_labels = len(self.needed) + 1  # for filtered words
         X = numpy.array(X)
         y = numpy.array(y)
         total = len(y)

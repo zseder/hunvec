@@ -23,9 +23,8 @@ class NNLM(object):
         self.max_epochs = max_epochs
 
     def add_corpus(self, corpus):
-        self.vocab_size = len(corpus.vocab)
-        d = corpus.get_matrices(self.window_size)
-        self.alg_datasets = {'train': d[0], 'valid': d[1], 'test': d[2]}
+        self.corpus = corpus
+        self.vocab_size = len(corpus.needed) + 1  # for filtered words
 
     def create_model(self):
 
@@ -41,34 +40,43 @@ class NNLM(object):
                     input_space=input_space)
         self.model = model
 
-    def create_algorithm(self):
+    def create_algorithm(self, monitoring_dataset):
         cost_crit = MonitorBased(channel_name=self.optimize_for,
-                                 prop_decrease=0., N=10)
+                                 prop_decrease=0., N=2)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
         weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
         cost = SumOfCosts(costs=[Default(), weightdecay])
         self.algorithm = SGD(batch_size=64, learning_rate=.1,
-                             monitoring_dataset=self.alg_datasets,
+                             monitoring_dataset=monitoring_dataset,
                              termination_criterion=term, cost=cost)
 
-    def create_training_problem(self, save_best_path):
+    def create_training_problem(self, training_dataset, save_best_path):
         ext1 = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                     save_path=save_best_path)
-        trainer = Train(dataset=self.alg_datasets['train'], model=self.model,
+        trainer = Train(dataset=training_dataset, model=self.model,
                         algorithm=self.algorithm, extensions=[ext1])
         self.trainer = trainer
 
+    def create_batch_trainer(self, save_best_path):
+        del self.trainer, self.algorithm
+        self.create_model()
+        dataset = self.corpus.create_batch_matrices()
+        if dataset is None:
+            return None
+        self.create_algorithm(dataset[1])
+        self.create_training_problem(dataset[0], save_best_path)
+
 
 def main():
-    nnlm = NNLM(hidden_dim=80, embedding_dim=40, max_epochs=100, window_size=3)
-    corpus = Corpus.read_corpus(sys.argv[1])
-    corpus.filter_freq(n=5000)
+    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=100, window_size=5)
+    corpus = Corpus(sys.argv[1])
     nnlm.add_corpus(corpus)
-    nnlm.create_model()
-    nnlm.create_algorithm()
-    nnlm.create_training_problem(sys.argv[2])
-    nnlm.trainer.main_loop()
+    while True:
+        nnlm.create_batch_trainer(sys.argv[2])
+        if not hasattr(nnlm, 'trainer'):
+            break
+        nnlm.trainer.main_loop()
 
 
 if __name__ == "__main__":
