@@ -31,13 +31,12 @@ class NNLM(object):
 
         input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
-        h1 = RectifiedLinear(layer_name='h1', dim=self.edim, irange=.1)
         output = Softmax(layer_name='softmax', binary_target_dim=1,
                          n_classes=self.vocab_size, irange=0.1)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
-        model = MLP(layers=[input_, h0, h1, output],
+        model = MLP(layers=[input_, h0, output],
                     input_space=input_space)
         self.model = model
 
