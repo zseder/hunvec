@@ -38,9 +38,7 @@ class Corpus(object):
                 if w not in self.vocab:
                     if w in self.needed:
                         self.vocab[w] = len(self.vocab)
-                    else:
-                        self.vocab[w] = -1
-            s = [self.vocab[w] for w in s]
+            s = [(self.vocab[w] if w in self.vocab else -1) for w in s]
             for ngr, y in self.sentence_ngrams(s):
                 if y == -1 or y > len(self.needed):
                     continue
