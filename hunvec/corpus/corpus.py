@@ -53,13 +53,11 @@ class Corpus(object):
                     continue
                 X.append(ngr)
                 if self.hs:
-                    y = self.ht[y]
+                    y = self.v_enc[y]
                 else:
                     y = [y]
                 Y.append(y)
                 c += 1
-                print X, y
-                quit()
             if c >= self.bs:
                 break
         if c < self.bs:
@@ -83,7 +81,7 @@ class Corpus(object):
         X, y = res
         num_labels = len(self.needed) + 1  # for filtered words
         X = numpy.array(X)
-        y = numpy.array(y)
+        y = numpy.array(y, dtype='int8')
         total = len(y)
         indices = range(total)
         shuffle(indices)
