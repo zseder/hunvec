@@ -11,17 +11,19 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.mlp import Default, WeightDecay
 
-from corpus import Corpus
+from hunvec.corpus.corpus import Corpus
+from hunvec.layers.hs import HierarchicalSoftmax as HS
 
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
-                 optimize_for='valid_softmax_ppl', max_epochs=10000):
+                 optimize_for='valid_softmax_ppl', max_epochs=10000, hs=False):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
         self.optimize_for = optimize_for
         self.max_epochs = max_epochs
+        self.hs = hs
 
     def add_corpus(self, corpus):
         self.corpus = corpus
@@ -31,8 +33,11 @@ class NNLM(object):
 
         input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
-        output = Softmax(layer_name='softmax', binary_target_dim=1,
-                         n_classes=self.vocab_size, irange=0.1)
+        if not self.hs:
+            output = Softmax(layer_name='softmax', binary_target_dim=1,
+                             n_classes=self.vocab_size, irange=0.1)
+        else:
+            output = HS(self.vocab_size, layer_name='hs', irange=0.1)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
@@ -77,8 +82,8 @@ class NNLM(object):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    nnlm = NNLM(hidden_dim=128, embedding_dim=64, max_epochs=20, window_size=3)
-    corpus = Corpus(sys.argv[1], batch_size=1000, window_size=3)
+    nnlm = NNLM(hidden_dim=128, embedding_dim=64, max_epochs=20, window_size=3, hs=True, optimize_for='valid_hs_kl')
+    corpus = Corpus(sys.argv[1], batch_size=100000, window_size=3, top_n=1000, hs=True)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
