@@ -32,7 +32,7 @@ class NNLM(object):
     def create_model(self):
 
         input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
+        #h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
         if not self.hs:
             output = Softmax(layer_name='softmax', binary_target_dim=1,
                              n_classes=self.vocab_size, irange=0.1)
@@ -41,7 +41,7 @@ class NNLM(object):
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
-        model = MLP(layers=[input_, h0, output],
+        model = MLP(layers=[input_, output],
                     input_space=input_space)
         self.model = model
 
@@ -82,8 +82,8 @@ class NNLM(object):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    nnlm = NNLM(hidden_dim=128, embedding_dim=64, max_epochs=20, window_size=3, hs=True, optimize_for='valid_hs_kl')
-    corpus = Corpus(sys.argv[1], batch_size=100000, window_size=3, top_n=1000, hs=True)
+    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20, window_size=3, hs=True, optimize_for='valid_hs_kl')
+    corpus = Corpus(sys.argv[1], batch_size=100000, window_size=3, top_n=15000, hs=True)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
