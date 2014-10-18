@@ -6,12 +6,11 @@ from pylearn2.models.mlp import Layer, Sigmoid
 class HierarchicalSoftmax(Sigmoid):
     def __init__(self, vocab_size, **kwargs):
         dim = vocab_size
-        super(HierarchicalSoftmax, self).__init__(dim=dim, **kwargs)
+        super(HierarchicalSoftmax, self).__init__(dim=dim,
+                                                  **kwargs)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        # TODO iterate through Y, where Y>=0, compute kl and multiply them
-        # at the end
         zeros = tensor.eq(Y, 0)
         ones = tensor.eq(Y, 1)
         other = tensor.lt(Y, 0)
