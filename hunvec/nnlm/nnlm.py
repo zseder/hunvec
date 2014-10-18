@@ -5,13 +5,14 @@ from pylearn2.space import IndexSpace
 from pylearn2.models.mlp import MLP, Tanh
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.mlp import Default, WeightDecay
 
-from corpus import Corpus
+from hunvec.corpus.corpus import Corpus
 
 
 class NNLM(object):
@@ -48,7 +49,7 @@ class NNLM(object):
         # TODO: weightdecay with projection layer?
         #weightdecay = WeightDecay(coeffs=[None, 5e-5, 5e-5, 5e-5])
         #cost = SumOfCosts(costs=[Default(), weightdecay])
-        self.algorithm = SGD(batch_size=64, learning_rate=.1,
+        self.algorithm = BGD(batch_size=1000, learning_rate=.1,
                              monitoring_dataset=dataset,
                              termination_criterion=term)
 
@@ -77,8 +78,8 @@ class NNLM(object):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    nnlm = NNLM(hidden_dim=128, embedding_dim=64, max_epochs=20, window_size=3)
-    corpus = Corpus(sys.argv[1], batch_size=1000, window_size=3)
+    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=50, window_size=5)
+    corpus = Corpus(sys.argv[1], batch_size=15000, window_size=5)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
