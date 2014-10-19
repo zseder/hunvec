@@ -1,4 +1,5 @@
 from theano import tensor
+
 from pylearn2.utils import wraps
 from pylearn2.models.mlp import Layer, Sigmoid
 
