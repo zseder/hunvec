@@ -22,6 +22,7 @@ class Corpus(object):
         self.f = open(fn)
         self.eof = False
         self.skip_str = "__FILTERED__"
+        logging.info("Corpus initialized")
 
     def compute_needed_words(self, fn):
         v = {}
@@ -59,6 +60,7 @@ class Corpus(object):
                 Y.append(y)
                 c += 1
             if c >= self.bs:
+                logging.info("Batch read.")
                 break
         if c < self.bs:
             # end of file
@@ -79,9 +81,12 @@ class Corpus(object):
         if res is None:
             return None
         X, y = res
-        num_labels = len(self.needed) + 1  # for filtered words
+        x_labels = len(self.needed)  # for filtered words
+        y_labels = len(self.needed)  # for filtered words
+        if self.hs:
+            y_labels = None
         X = numpy.array(X)
-        y = numpy.array(y, dtype='int8')
+        y = numpy.array(y)
         total = len(y)
         indices = range(total)
         shuffle(indices)
@@ -92,13 +97,13 @@ class Corpus(object):
         #test = total - training - valid
         training_data = DenseDesignMatrix(X=X[training_indices, :],
                                           y=y[training_indices],
-                                          X_labels=num_labels,
-                                          y_labels=num_labels)
+                                          X_labels=x_labels,
+                                          y_labels=y_labels)
         valid_data = DenseDesignMatrix(X=X[valid_indices, :],
                                        y=y[valid_indices],
-                                       X_labels=num_labels,
-                                       y_labels=num_labels)
+                                       X_labels=x_labels,
+                                       y_labels=y_labels)
         test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:],
-                                      X_labels=num_labels,
-                                      y_labels=num_labels)
+                                      X_labels=x_labels,
+                                      y_labels=y_labels)
         return training_data, valid_data, test_data
