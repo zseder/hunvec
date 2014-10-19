@@ -8,8 +8,8 @@ from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
-from pylearn2.costs.cost import SumOfCosts
-from pylearn2.costs.mlp import Default, WeightDecay
+#from pylearn2.costs.cost import SumOfCosts
+#from pylearn2.costs.mlp import Default, WeightDecay
 
 from hunvec.corpus.corpus import Corpus
 from hunvec.layers.hs import HierarchicalSoftmax as HS
@@ -81,9 +81,11 @@ class NNLM(object):
 
 def main():
     logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s : %(module)s (%(lineno)s) - %(levelname)s - %(message)s")
-    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20, window_size=5, hs=True, optimize_for='valid_hs_kl')
-    corpus = Corpus(sys.argv[1], batch_size=2000, window_size=5, top_n=50000, hs=True)
+                        format="%(asctime)s : %(module)s (%(lineno)s) - %(levelname)s - %(message)s")  # nopep8
+    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20,
+                window_size=5, hs=False)  # True, optimize_for='valid_hs_kl')
+    corpus = Corpus(sys.argv[1], batch_size=2000, window_size=5, top_n=50000,
+                    hs=False)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
