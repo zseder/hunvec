@@ -5,26 +5,38 @@ import numpy
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
+from hunvec.utils.binary_tree import create_binary_tree, vector_encoder
+
 
 class Corpus(object):
-    def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000):
-        self.vocab = {}
+    def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000,
+                 hs=False):
         self.bs = batch_size
         self.ws = window_size
         self.top_n = top_n
-        self.needed = self.get_freq_words(fn)
+        self.compute_needed_words(fn)
+        self.hs = hs
+        if hs:
+            self.ht = create_binary_tree(self.needed)
+            self.v_enc = vector_encoder(self.ht)
         self.f = open(fn)
         self.eof = False
+        self.skip_str = "__FILTERED__"
+        logging.info("Corpus initialized")
 
-    def get_freq_words(self, fn):
+    def compute_needed_words(self, fn):
         v = {}
         for l in open(fn):
             l = l.decode("utf-8")
             s = l.split()
             for w in s:
                 v[w] = v.get(w, 0) + 1
-        needed = sorted(v.iteritems(), key=lambda x: -x[1])[:self.top_n]
-        return set(w for w, _ in needed)
+        sorted_v = sorted(v.iteritems(), key=lambda x: -x[1])
+        needed = sorted_v[:self.top_n]
+        self.vocab = dict((k, i) for i, (k, _) in enumerate(needed))
+        needed = dict((self.vocab[w], f) for w, f in needed)
+        needed[-1] = sum(v for _, v in sorted_v[self.top_n:])
+        self.needed = needed
 
     def read_batch(self):
         if self.eof:
@@ -34,20 +46,21 @@ class Corpus(object):
         for l in self.f:
             l = l.decode("utf-8")
             s = l.split()
-            for w in s:
-                if w not in self.vocab:
-                    if w in self.needed:
-                        self.vocab[w] = len(self.vocab)
             s = [(self.vocab[w] if w in self.vocab else -1) for w in s]
             for ngr, y in self.sentence_ngrams(s):
-                if y == -1 or y > len(self.needed):
+                if y == -1:
                     continue
                 if len(set(ngr)) < self.ws:
                     continue
                 X.append(ngr)
-                Y.append([y])
+                if self.hs:
+                    y = self.v_enc[y]
+                else:
+                    y = [y]
+                Y.append(y)
                 c += 1
             if c >= self.bs:
+                logging.info("Batch read.")
                 break
         if c < self.bs:
             # end of file
@@ -68,7 +81,10 @@ class Corpus(object):
         if res is None:
             return None
         X, y = res
-        num_labels = len(self.needed) + 1  # for filtered words
+        x_labels = len(self.needed)  # for filtered words
+        y_labels = len(self.needed)  # for filtered words
+        if self.hs:
+            y_labels = None
         X = numpy.array(X)
         y = numpy.array(y)
         total = len(y)
@@ -81,13 +97,13 @@ class Corpus(object):
         #test = total - training - valid
         training_data = DenseDesignMatrix(X=X[training_indices, :],
                                           y=y[training_indices],
-                                          X_labels=num_labels,
-                                          y_labels=num_labels)
+                                          X_labels=x_labels,
+                                          y_labels=y_labels)
         valid_data = DenseDesignMatrix(X=X[valid_indices, :],
                                        y=y[valid_indices],
-                                       X_labels=num_labels,
-                                       y_labels=num_labels)
+                                       X_labels=x_labels,
+                                       y_labels=y_labels)
         test_data = DenseDesignMatrix(X=X[valid:, :], y=y[valid:],
-                                      X_labels=num_labels,
-                                      y_labels=num_labels)
+                                      X_labels=x_labels,
+                                      y_labels=y_labels)
         return training_data, valid_data, test_data
