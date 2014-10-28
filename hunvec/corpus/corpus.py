@@ -5,7 +5,7 @@ import numpy
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
-from hunvec.utils.binary_tree import create_binary_tree, vector_encoder
+from hunvec.utils.binary_tree import BinaryTreeEncoder
 
 
 class Corpus(object):
@@ -17,8 +17,7 @@ class Corpus(object):
         self.compute_needed_words(fn)
         self.hs = hs
         if hs:
-            self.ht = create_binary_tree(self.needed)
-            self.v_enc = vector_encoder(self.ht)
+            self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
         self.f = open(fn)
         self.eof = False
         self.skip_str = "__FILTERED__"
@@ -54,7 +53,7 @@ class Corpus(object):
                     continue
                 X.append(ngr)
                 if self.hs:
-                    y = self.v_enc[y]
+                    y = self.w_enc(y)
                 else:
                     y = [y]
                 Y.append(y)

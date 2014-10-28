@@ -80,12 +80,12 @@ class NNLM(object):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s : %(module)s (%(lineno)s) - %(levelname)s - %(message)s")  # nopep8
     nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20,
-                window_size=5, hs=False)  # True, optimize_for='valid_hs_kl')
-    corpus = Corpus(sys.argv[1], batch_size=2000, window_size=5, top_n=50000,
-                    hs=False)
+                window_size=5, hs=True, optimize_for='valid_hs_kl')
+    corpus = Corpus(sys.argv[1], batch_size=20000, window_size=5, top_n=50000,
+                    hs=True)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
