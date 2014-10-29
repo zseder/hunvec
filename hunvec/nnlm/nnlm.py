@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument(
         '--window', default=5, type=int)
     parser.add_argument(
-        '--hierarchical-softmax', action='store_true', dest='hs')
+        '--no-hierarchical-softmax', action='store_false', dest='hs')
     parser.add_argument(
         '--cost', default='valid_hs_kl')
     parser.add_argument(
@@ -107,6 +107,7 @@ def main():
     logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s : %(module)s (%(lineno)s) - %(levelname)s - %(message)s")  # nopep8
     args = parse_args()
+    logging.debug(args.cost)
     nnlm = NNLM(
         hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
         window_size=args.window, hs=args.hs, optimize_for=args.cost)
