@@ -10,7 +10,7 @@ from hunvec.utils.binary_tree import BinaryTreeEncoder
 
 class Corpus(object):
     def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000,
-                 hs=False, max_outer_epoch=2):
+                 hs=False, max_corpus_epoch=2):
         self.bs = batch_size
         self.ws = window_size
         self.top_n = top_n
@@ -20,7 +20,7 @@ class Corpus(object):
             self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
         self.fn = fn
         self.f = open(fn)
-        self.max_outer_epoch = max_outer_epoch
+        self.max_corpus_epoch = max_corpus_epoch
         self.epoch_count = 0
         self.skip_str = "__FILTERED__"
         logging.info("Corpus initialized")
@@ -40,6 +40,8 @@ class Corpus(object):
         self.needed = needed
 
     def read_batch(self, start_count=0, x=None, y=None):
+        if self.epoch_count == self.max_corpus_epoch:
+            return
         c = start_count
         if x is None:
             X, Y = [], []
@@ -67,7 +69,7 @@ class Corpus(object):
         if c < self.bs:
             self.epoch_count += 1
             logging.info("epoch #{}.finished".format(self.epoch_count))
-            if self.epoch_count < self.max_outer_epoch:
+            if self.epoch_count < self.max_corpus_epoch:
                 self.f = open(self.fn)
                 return self.read_batch(start_count=c, x=X, y=Y)
 
