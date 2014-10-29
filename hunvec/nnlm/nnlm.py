@@ -85,7 +85,7 @@ def main():
     nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20,
                 window_size=5, hs=True, optimize_for='valid_hs_kl')
     corpus = Corpus(sys.argv[1], batch_size=20000, window_size=5, top_n=50000,
-                    hs=True)
+                    hs=True, max_outer_epoch=2)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
