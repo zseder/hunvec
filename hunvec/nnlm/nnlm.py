@@ -1,5 +1,5 @@
-import sys
 import logging
+import argparse
 
 from pylearn2.space import IndexSpace
 from pylearn2.models.mlp import MLP, Tanh
@@ -77,21 +77,49 @@ class NNLM(object):
         d = {'train': dataset[0], 'valid': dataset[1], 'test': dataset[2]}
         self.create_algorithm(d)
         self.create_training_problem(d, save_best_path)
+        
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('corpus')
+    parser.add_argument('output')
+    parser.add_argument(
+        '--hidden-dim', default=200, type=int, dest='hdim')
+    parser.add_argument(
+        '--vector-dim', default=100, type=int, dest='vdim')
+    parser.add_argument(
+        '--corpus-epoch', default=2, type=int, dest='cepoch')
+    parser.add_argument(
+        '--batch-epoch', default=20, type=int, dest='bepoch')
+    parser.add_argument(
+        '--window', default=5, type=int)
+    parser.add_argument(
+        '--no-hierarchical-softmax', action='store_false', dest='hs')
+    parser.add_argument(
+        '--cost', default='valid_hs_kl')
+    parser.add_argument(
+        '--batch-size', default=20000, type=int, dest='bsize')
+    parser.add_argument(
+        '--vocab-size', default=50000, type=int, dest='vsize')
+    return parser.parse_args()
 
 def main():
     logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s : %(module)s (%(lineno)s) - %(levelname)s - %(message)s")  # nopep8
-    nnlm = NNLM(hidden_dim=200, embedding_dim=100, max_epochs=20,
-                window_size=5, hs=True, optimize_for='valid_hs_kl')
-    corpus = Corpus(sys.argv[1], batch_size=20000, window_size=5, top_n=50000,
-                    hs=True, max_corpus_epoch=2)
+    args = parse_args()
+    logging.debug(args.cost)
+    nnlm = NNLM(
+        hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
+        window_size=args.window, hs=args.hs, optimize_for=args.cost)
+    corpus = Corpus(
+        args.corpus, batch_size=args.bsize, window_size=args.window,
+        top_n=args.vsize, hs=args.hs, max_corpus_epoch=args.cepoch)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     c = 1
     while True:
         logging.info("{0}. batch started".format(c))
-        nnlm.create_batch_trainer(sys.argv[2])
+        nnlm.create_batch_trainer(args.output)
         if not hasattr(nnlm, 'trainer'):
             break
         logging.info("Training started.")
