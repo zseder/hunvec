@@ -10,7 +10,7 @@ from hunvec.utils.binary_tree import BinaryTreeEncoder
 
 class Corpus(object):
     def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000,
-                 hs=False):
+                 hs=False, max_corpus_epoch=2):
         self.bs = batch_size
         self.ws = window_size
         self.top_n = top_n
@@ -18,8 +18,10 @@ class Corpus(object):
         self.hs = hs
         if hs:
             self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
+        self.fn = fn
         self.f = open(fn)
-        self.eof = False
+        self.max_corpus_epoch = max_corpus_epoch
+        self.epoch_count = 0
         self.skip_str = "__FILTERED__"
         logging.info("Corpus initialized")
 
@@ -37,11 +39,14 @@ class Corpus(object):
         needed[-1] = sum(v for _, v in sorted_v[self.top_n:])
         self.needed = needed
 
-    def read_batch(self):
-        if self.eof:
+    def read_batch(self, start_count=0, x=None, y=None):
+        if self.epoch_count == self.max_corpus_epoch:
             return
-        c = 0
-        X, Y = [], []
+        c = start_count
+        if x is None:
+            X, Y = [], []
+        else:
+            X, Y = x, y
         for l in self.f:
             l = l.decode("utf-8")
             s = l.split()
@@ -62,11 +67,14 @@ class Corpus(object):
                 logging.info("Batch read.")
                 break
         if c < self.bs:
-            # end of file
-            self.eof = True
-            logging.info("End of file")
+            self.epoch_count += 1
+            logging.info("epoch #{}.finished".format(self.epoch_count))
+            if self.epoch_count < self.max_corpus_epoch:
+                self.f = open(self.fn)
+                return self.read_batch(start_count=c, x=X, y=Y)
 
         return X, Y
+
 
     def sentence_ngrams(self, s):
         n = self.ws
