@@ -79,10 +79,19 @@ class NNLM(object):
         self.create_training_problem(d, save_best_path)
         
 
+def write_embedding(corpus, nnlm, filen):
+    embedding = nnlm.model.get_params()[0].get_value()
+    with open(filen, mode='w') as outfile:
+        outfile.write('{} {}\n'.format(*embedding.shape))
+        for i in xrange(-1,embedding.shape[0]-1):
+            word = corpus.index2word[i].encode('utf8')
+            vector = ' '.join(['{0:.4}'.format(coord) for coord in embedding[i].tolist()])
+            outfile.write('{} {}\n'.format(word, vector))
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('corpus')
-    parser.add_argument('output')
+    parser.add_argument('model')
     parser.add_argument(
         '--hidden-dim', default=200, type=int, dest='hdim')
     parser.add_argument(
@@ -101,6 +110,8 @@ def parse_args():
         '--batch-size', default=20000, type=int, dest='bsize')
     parser.add_argument(
         '--vocab-size', default=50000, type=int, dest='vsize')
+    parser.add_argument(
+        '--vectors', default='vectors.txt')
     return parser.parse_args()
 
 def main():
@@ -119,13 +130,14 @@ def main():
     c = 1
     while True:
         logging.info("{0}. batch started".format(c))
-        nnlm.create_batch_trainer(args.output)
+        nnlm.create_batch_trainer(args.model)
         if not hasattr(nnlm, 'trainer'):
             break
         logging.info("Training started.")
         nnlm.trainer.main_loop()
         c += 1
-
+    write_embedding(corpus, nnlm, args.vectors) 
+            
 
 if __name__ == "__main__":
     main()
