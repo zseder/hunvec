@@ -34,6 +34,8 @@ class Corpus(object):
                 v[w] = v.get(w, 0) + 1
         sorted_v = sorted(v.iteritems(), key=lambda x: -x[1])
         needed = sorted_v[:self.top_n]
+        self.index2word = dict((i, w) for i, (w, f) in enumerate(needed))
+        self.index2word[-1] = '<unk>'
         self.vocab = dict((k, i) for i, (k, _) in enumerate(needed))
         needed = dict((self.vocab[w], f) for w, f in needed)
         needed[-1] = sum(v for _, v in sorted_v[self.top_n:])
