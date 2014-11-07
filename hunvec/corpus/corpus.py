@@ -77,7 +77,6 @@ class Corpus(object):
 
         return X, Y
 
-
     def sentence_ngrams(self, s):
         n = self.ws
         for i in xrange(len(s) - n):

@@ -18,5 +18,3 @@ class HierarchicalSoftmax(Sigmoid):
         probs = zeros * Y_hat + ones * (1 - Y_hat) + other
         row_probs = tensor.prod(probs, axis=1)
         return tensor.sum(row_probs)
-
-        return super(HierarchicalSoftmax, self).cost(Y, Y_hat)
