@@ -1,7 +1,7 @@
 """
 Copied from http://rosettacode.org/wiki/Huffman_coding#Python and modified.
 """
-import logging
+#import logging
 
 from heapq import heappush, heappop, heapify
 import numpy
@@ -27,10 +27,11 @@ class BinaryTreeEncoder():
         self.tree = dict(heappop(heap)[1:])
 
     def index_prefixes(self):
-        prefixes = reduce(
-            lambda x, y: x | y, 
-            [set(code[:i] for i in xrange(len(code))) for w, code in
-             self.tree.iteritems()])
+        prefixes = set()
+        for w, code in self.tree.iteritems():
+            for i in xrange(len(code)):
+                prefixes.add(code[:i])
+
         alpha_sorted = sorted(prefixes)
         len_sorted = sorted(alpha_sorted, key=lambda x: len(x))
         self.prefix_index = dict((prefix, i) for i, prefix in
@@ -51,12 +52,11 @@ class BinaryTreeEncoder():
         return new_code
 
     def to_short(self, code):
-        return filter(lambda x: x!=-1, code)
+        return filter(lambda x: x != -1, code)
+
 
 if __name__ == '__main__':
     import sys
     d = dict(line.split() for line in open(sys.argv[1]))
     e = BinaryTreeEncoder(d)
     print e.word_encoder('a')
-
-    
