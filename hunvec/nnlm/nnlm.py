@@ -77,16 +77,18 @@ class NNLM(object):
         d = {'train': dataset[0], 'valid': dataset[1], 'test': dataset[2]}
         self.create_algorithm(d)
         self.create_training_problem(d, save_best_path)
-        
+
 
 def write_embedding(corpus, nnlm, filen):
     embedding = nnlm.model.get_params()[0].get_value()
     with open(filen, mode='w') as outfile:
         outfile.write('{} {}\n'.format(*embedding.shape))
-        for i in xrange(-1,embedding.shape[0]-1):
+        for i in xrange(-1, embedding.shape[0]-1):
             word = corpus.index2word[i].encode('utf8')
-            vector = ' '.join(['{0:.4}'.format(coord) for coord in embedding[i].tolist()])
+            vector = ' '.join(['{0:.4}'.format(coord)
+                               for coord in embedding[i].tolist()])
             outfile.write('{} {}\n'.format(word, vector))
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -105,7 +107,7 @@ def parse_args():
     parser.add_argument(
         '--no-hierarchical-softmax', action='store_false', dest='hs')
     parser.add_argument(
-        '--cost', default='valid_hs_kl')
+        '--cost', default='valid_hs_ppl')
     parser.add_argument(
         '--batch-size', default=20000, type=int, dest='bsize')
     parser.add_argument(
@@ -113,6 +115,7 @@ def parse_args():
     parser.add_argument(
         '--vectors', default='vectors.txt')
     return parser.parse_args()
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG,
@@ -136,8 +139,8 @@ def main():
         logging.info("Training started.")
         nnlm.trainer.main_loop()
         c += 1
-    write_embedding(corpus, nnlm, args.vectors) 
-            
+    write_embedding(corpus, nnlm, args.vectors)
+
 
 if __name__ == "__main__":
     main()
