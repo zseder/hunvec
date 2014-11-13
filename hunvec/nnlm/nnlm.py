@@ -28,6 +28,7 @@ class NNLM(object):
     def add_corpus(self, corpus):
         self.corpus = corpus
         self.vocab_size = len(corpus.needed)  # for filtered words
+        self.index2word = corpus.index2word
 
     def create_model(self):
 
