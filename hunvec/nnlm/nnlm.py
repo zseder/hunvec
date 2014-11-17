@@ -42,6 +42,7 @@ class NNLM(object):
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
         model = MLP(layers=[input_, h0, output], input_space=input_space)
+        model.index2word = self.corpus.index2word
         self.model = model
 
     def create_algorithm(self, dataset):
