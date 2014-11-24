@@ -4,9 +4,9 @@ import argparse
 from pylearn2.space import IndexSpace
 from pylearn2.models.mlp import MLP, Tanh
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
-from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
+from pylearn2.training_algorithms import learning_rule
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
-from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 #from pylearn2.costs.cost import SumOfCosts
 #from pylearn2.costs.mlp import Default, WeightDecay
@@ -17,13 +17,15 @@ from hunvec.layers.hs import HierarchicalSoftmax as HS
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
-                 optimize_for='valid_softmax_ppl', max_epochs=10000, hs=False):
+                 optimize_for='valid_softmax_ppl', max_epochs=10000, hs=False,
+                 save_best_path='best_model_file'):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
         self.optimize_for = optimize_for
         self.max_epochs = max_epochs
         self.hs = hs
+        self.save_best_path = save_best_path
 
     def add_corpus(self, corpus):
         self.corpus = corpus
@@ -45,39 +47,63 @@ class NNLM(object):
         model.index2word = self.corpus.index2word
         self.model = model
 
-    def create_algorithm(self, dataset):
+    def create_adjustors(self):
+        initial_momentum = .5
+        final_momentum = .99
+        start = 1
+        saturate = 50
+        self.momentum_adjustor = learning_rule.MomentumAdjustor(
+            final_momentum, start, saturate)
+        self.momentum_rule = learning_rule.Momentum(initial_momentum)
+
+        decay_factor = .1
+        self.learning_rate_adjustor = LinearDecayOverEpoch(
+            start, saturate, decay_factor)
+
+    def create_algorithm(self):
         cost_crit = MonitorBased(channel_name=self.optimize_for,
-                                 prop_decrease=0., N=2)
+                                 prop_decrease=0., N=3)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
         # TODO: weightdecay with projection layer?
         #weightdecay = WeightDecay(coeffs=[None, 5e-5, 5e-5, 5e-5])
         #cost = SumOfCosts(costs=[Default(), weightdecay])
-        self.algorithm = SGD(batch_size=32, learning_rate=.1,
-                             monitoring_dataset=dataset,
-                             termination_criterion=term)
 
-    def create_training_problem(self, dataset, save_best_path):
-        ext1 = MonitorBasedSaveBest(channel_name=self.optimize_for,
-                                    save_path=save_best_path)
-        trainer = Train(dataset=dataset['train'], model=self.model,
-                        algorithm=self.algorithm, extensions=[ext1])
-        self.trainer = trainer
+        self.create_adjustors()
+        self.algorithm = SGD(batch_size=32, learning_rate=.05,
+                             termination_criterion=term,
+                             learning_rule=self.momentum_rule)
+        self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
+                                         save_path=self.save_best_path)
 
-    def create_batch_trainer(self, save_best_path):
+    def create_batch_trainer(self):
         dataset = self.corpus.create_batch_matrices()
         if dataset is None:
-            if hasattr(self, "trainer"):
-                del self.trainer
+            if hasattr(self, "algorithm"):
+                del self.algorithm
             return None
         if hasattr(self.model, 'monitor'):
             del self.model.monitor
-            del self.trainer
-            del self.algorithm
-            del self.model.tag["MonitorBasedSaveBest"]
         d = {'train': dataset[0], 'valid': dataset[1], 'test': dataset[2]}
-        self.create_algorithm(d)
-        self.create_training_problem(d, save_best_path)
+        self.dataset = d
+
+    def train_batch(self):
+        self.algorithm.monitoring_dataset = self.dataset
+        self.algorithm.setup(self.model, self.dataset['train'])
+        while True:
+            self.algorithm.train(dataset=self.dataset['train'])
+            self.model.monitor.report_epoch()
+            self.model.monitor()
+            self.mbsb.on_monitor(self.model, self.dataset['valid'],
+                                 self.algorithm)
+            if not self.algorithm.continue_learning(self.model):
+                break
+            self.momentum_adjustor.on_monitor(self.model,
+                                              self.dataset['valid'],
+                                              self.algorithm)
+            self.learning_rate_adjustor.on_monitor(self.model,
+                                                   self.dataset['valid'],
+                                                   self.algorithm)
 
 
 def write_embedding(corpus, nnlm, filen):
@@ -125,20 +151,22 @@ def main():
     logging.debug(args.cost)
     nnlm = NNLM(
         hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
-        window_size=args.window, hs=args.hs, optimize_for=args.cost)
+        window_size=args.window, hs=args.hs, optimize_for=args.cost,
+        save_best_path=args.model)
     corpus = Corpus(
         args.corpus, batch_size=args.bsize, window_size=args.window,
         top_n=args.vsize, hs=args.hs, max_corpus_epoch=args.cepoch)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
+    nnlm.create_algorithm()
     c = 1
     while True:
         logging.info("{0}. batch started".format(c))
-        nnlm.create_batch_trainer(args.model)
-        if not hasattr(nnlm, 'trainer'):
+        nnlm.create_batch_trainer()
+        if not hasattr(nnlm, 'algorithm'):
             break
         logging.info("Training started.")
-        nnlm.trainer.main_loop()
+        nnlm.train_batch()
         c += 1
         write_embedding(corpus, nnlm, args.vectors)
 
