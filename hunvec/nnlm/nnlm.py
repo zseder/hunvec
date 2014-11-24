@@ -140,7 +140,7 @@ def main():
         logging.info("Training started.")
         nnlm.trainer.main_loop()
         c += 1
-    write_embedding(corpus, nnlm, args.vectors)
+        write_embedding(corpus, nnlm, args.vectors)
 
 
 if __name__ == "__main__":
