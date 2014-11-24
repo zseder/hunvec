@@ -49,7 +49,7 @@ def corpus_test(model, corpus):
             probs = numpy.array([y[w == 0].prod() * (1.0 - y[w == 1]).prod()
                                  for w in v])
             closests = set([tuple(v[w][needed])
-                            for w in probs.argsort()[-100:]])
+                            for w in probs.argsort()[-5:]])
             if tuple(tgt[needed]) in closests:
                 good += 1
             else:
