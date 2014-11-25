@@ -75,6 +75,7 @@ class Corpus(object):
                 self.f = open(self.fn)
                 return self.read_batch(start_count=c, x=X, y=Y)
 
+        Y = numpy.array(Y, dtype=numpy.int8)
         return X, Y
 
     def sentence_ngrams(self, s):
@@ -94,7 +95,6 @@ class Corpus(object):
         if self.hs:
             y_labels = None
         X = numpy.array(X)
-        y = numpy.array(y)
         total = len(y)
         indices = range(total)
         shuffle(indices)
