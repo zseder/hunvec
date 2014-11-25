@@ -17,7 +17,7 @@ from hunvec.layers.hs import HierarchicalSoftmax as HS
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
-                 optimize_for='valid_softmax_ppl', max_epochs=10000, hs=False,
+                 optimize_for='valid_softmax_ppl', max_epochs=20, hs=False,
                  save_best_path='best_model_file'):
         self.hdim = hidden_dim
         self.window_size = window_size
@@ -61,17 +61,18 @@ class NNLM(object):
             start, saturate, decay_factor)
 
     def create_algorithm(self):
-        cost_crit = MonitorBased(channel_name=self.optimize_for,
-                                 prop_decrease=0., N=3)
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
-        term = And(criteria=[cost_crit, epoch_cnt_crit])
-        # TODO: weightdecay with projection layer?
-        #weightdecay = WeightDecay(coeffs=[None, 5e-5, 5e-5, 5e-5])
+        #cost_crit = MonitorBased(channel_name=self.optimize_for,
+        #                         prop_decrease=0., N=3)
+        #term = And(criteria=[cost_crit, epoch_cnt_crit])
+
+        #weightdecay = WeightDecay(coeffs=[0., 5e-5, 0.])
         #cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
         self.algorithm = SGD(batch_size=32, learning_rate=.05,
-                             termination_criterion=term,
+                             #termination_criterion=term,
+                             termination_criterion=epoch_cnt_crit,
                              learning_rule=self.momentum_rule)
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
