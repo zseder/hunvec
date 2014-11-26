@@ -76,6 +76,7 @@ class NNLM(object):
                              learning_rule=self.momentum_rule)
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
+        self.num_batches = 0
 
     def create_batch_trainer(self):
         dataset = self.corpus.create_batch_matrices()
@@ -93,18 +94,23 @@ class NNLM(object):
         self.algorithm.setup(self.model, self.dataset['train'])
         while True:
             self.algorithm.train(dataset=self.dataset['train'])
-            self.model.monitor.report_epoch()
-            self.model.monitor()
-            self.mbsb.on_monitor(self.model, self.dataset['valid'],
-                                 self.algorithm)
+            logging.info("Training done.")
+            self.num_batches += 1
+            if self.num_batches % 10 == 0:
+                logging.info("Monitoring started")
+                self.model.monitor.report_epoch()
+                self.model.monitor()
+                self.mbsb.on_monitor(self.model, self.dataset['valid'],
+                                     self.algorithm)
+                self.momentum_adjustor.on_monitor(self.model,
+                                                  self.dataset['valid'],
+                                                  self.algorithm)
+                self.learning_rate_adjustor.on_monitor(self.model,
+                                                       self.dataset['valid'],
+                                                       self.algorithm)
+                logging.info("Monitoring done")
             if not self.algorithm.continue_learning(self.model):
                 break
-            self.momentum_adjustor.on_monitor(self.model,
-                                              self.dataset['valid'],
-                                              self.algorithm)
-            self.learning_rate_adjustor.on_monitor(self.model,
-                                                   self.dataset['valid'],
-                                                   self.algorithm)
 
 
 def write_embedding(corpus, nnlm, filen):
