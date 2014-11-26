@@ -41,14 +41,15 @@ class Corpus(object):
         needed[-1] = sum(v for _, v in sorted_v[self.top_n:])
         self.needed = needed
 
-    def read_batch(self, start_count=0, x=None, y=None):
+    def read_batch(self):
         if self.epoch_count == self.max_corpus_epoch:
             return
-        c = start_count
-        if x is None:
-            X, Y = [], []
+        c = 0
+        X = []
+        if self.hs:
+            Y = numpy.zeros((self.bs, len(self.vocab)), dtype=numpy.int8)
         else:
-            X, Y = x, y
+            Y = []
         for l in self.f:
             l = l.decode("utf-8")
             s = l.split()
@@ -61,9 +62,9 @@ class Corpus(object):
                 X.append(ngr)
                 if self.hs:
                     y = self.w_enc(y)
+                    Y[c] = y
                 else:
-                    y = [y]
-                Y.append(y)
+                    Y.append([y])
                 c += 1
             if c >= self.bs:
                 logging.info("Batch read.")
@@ -73,10 +74,9 @@ class Corpus(object):
             logging.info("epoch #{}.finished".format(self.epoch_count))
             if self.epoch_count < self.max_corpus_epoch:
                 self.f = open(self.fn)
-                return self.read_batch(start_count=c, x=X, y=Y)
 
-        Y = numpy.array(Y, dtype=numpy.int8)
-        return X, Y
+        logging.info("Batch data ready.")
+        return X[:c], Y[:c]
 
     def sentence_ngrams(self, s):
         n = self.ws
@@ -94,6 +94,9 @@ class Corpus(object):
         y_labels = len(self.needed)  # for filtered words
         if self.hs:
             y_labels = None
+        else:
+            # in hierarchical softmax, we automatically create arrays
+            y = numpy.array(y)
         X = numpy.array(X)
         total = len(y)
         indices = range(total)
