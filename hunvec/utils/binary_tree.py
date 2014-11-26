@@ -41,7 +41,7 @@ class BinaryTreeEncoder():
         return self.to_long(self.tree[word])
 
     def to_long(self, code):
-        new_code = numpy.ones(len(self.prefix_index))
+        new_code = numpy.ones(len(self.prefix_index), dtype=numpy.int8)
         new_code *= -1
         for pr_i in xrange(len(code)):
             pr = code[:pr_i]
