@@ -66,6 +66,8 @@ class Corpus(object):
                 else:
                     Y.append([y])
                 c += 1
+                if c >= self.bs:
+                    break
             if c >= self.bs:
                 logging.info("Batch read.")
                 break
