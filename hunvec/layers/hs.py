@@ -3,6 +3,7 @@ from theano import tensor
 
 from pylearn2.utils import wraps
 from pylearn2.models.mlp import Layer, Sigmoid
+from pylearn2.compat import OrderedDict
 
 
 class HierarchicalSoftmax(Sigmoid):
@@ -26,8 +27,9 @@ class HierarchicalSoftmax(Sigmoid):
     def get_layer_monitoring_channels(self, state_below=None, state=None,
                                       target=None):
 
-        rval = Sigmoid.get_layer_monitoring_channels(self, state_below, state,
-                                                     target)
+        #rval = Sigmoid.get_layer_monitoring_channels(self, state_below, state,
+        #                                             target)
+        rval = OrderedDict()
 
         if target is not None:
             rval['nll'] = self.cost(Y_hat=state, Y=target)
