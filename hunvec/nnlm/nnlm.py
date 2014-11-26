@@ -4,7 +4,7 @@ import argparse
 from pylearn2.space import IndexSpace
 from pylearn2.models.mlp import MLP, Tanh
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
-from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
+from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
@@ -51,13 +51,13 @@ class NNLM(object):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = 50
+        saturate = 10000
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum)
 
-        decay_factor = .1
-        self.learning_rate_adjustor = LinearDecayOverEpoch(
+        decay_factor = .01
+        self.learning_rate_adjustor = LinearDecay(
             start, saturate, decay_factor)
 
     def create_algorithm(self):
@@ -96,7 +96,7 @@ class NNLM(object):
             self.algorithm.train(dataset=self.dataset['train'])
             logging.info("Training done.")
             self.num_batches += 1
-            if self.num_batches % 10 == 0:
+            if self.num_batches % 30 == 0:
                 logging.info("Monitoring started")
                 self.model.monitor.report_epoch()
                 self.model.monitor()
