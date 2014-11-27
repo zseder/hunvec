@@ -33,13 +33,13 @@ class NNLM(object):
 
     def create_model(self):
 
-        input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=0.1)
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
+        input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.5)
+        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.5)
         if not self.hs:
             output = Softmax(layer_name='softmax', binary_target_dim=1,
-                             n_classes=self.vocab_size, irange=0.1)
+                             n_classes=self.vocab_size, irange=0.5)
         else:
-            output = HS(self.vocab_size - 1, layer_name='hs', irange=0.1)
+            output = HS(self.vocab_size - 1, layer_name='hs', irange=0.01)
 
         input_space = IndexSpace(max_labels=self.vocab_size,
                                  dim=self.window_size)
@@ -51,14 +51,14 @@ class NNLM(object):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = 10000
+        saturate = 100
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum)
 
-        decay_factor = .01
+        decay_factor = .1
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate, decay_factor)
+            start, saturate * 1000, decay_factor)
 
     def create_algorithm(self):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
@@ -70,9 +70,10 @@ class NNLM(object):
         #cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
-        self.algorithm = SGD(batch_size=32, learning_rate=.05,
+        self.algorithm = SGD(batch_size=32, learning_rate=.1,
                              #termination_criterion=term,
                              termination_criterion=epoch_cnt_crit,
+                             update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule)
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
@@ -96,7 +97,7 @@ class NNLM(object):
             self.algorithm.train(dataset=self.dataset['train'])
             logging.info("Training done.")
             self.num_batches += 1
-            if self.num_batches % 30 == 0:
+            if self.num_batches % 10 == 0:
                 logging.info("Monitoring started")
                 self.model.monitor.report_epoch()
                 self.model.monitor()
@@ -105,9 +106,9 @@ class NNLM(object):
                 self.momentum_adjustor.on_monitor(self.model,
                                                   self.dataset['valid'],
                                                   self.algorithm)
-                self.learning_rate_adjustor.on_monitor(self.model,
-                                                       self.dataset['valid'],
-                                                       self.algorithm)
+                #self.learning_rate_adjustor.on_monitor(self.model,
+                #                                       self.dataset['valid'],
+                #                                       self.algorithm)
                 logging.info("Monitoring done")
             if not self.algorithm.continue_learning(self.model):
                 break
