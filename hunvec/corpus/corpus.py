@@ -10,12 +10,13 @@ from hunvec.utils.binary_tree import BinaryTreeEncoder
 
 class Corpus(object):
     def __init__(self, fn, batch_size=100000, window_size=3, top_n=10000,
-                 hs=False, max_corpus_epoch=2):
+                 hs=False, max_corpus_epoch=2, future=False):
         self.bs = batch_size
         self.ws = window_size
         self.top_n = top_n
         self.compute_needed_words(fn)
         self.hs = hs
+        self.future = future
         if hs:
             self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
         self.fn = fn
@@ -54,7 +55,7 @@ class Corpus(object):
             l = l.decode("utf-8")
             s = l.split()
             s = [(self.vocab[w] if w in self.vocab else -1) for w in s]
-            for ngr, y in self.sentence_ngrams(s):
+            for ngr, y in self.sentence_to_examples(s):
                 if y == -1:
                     continue
                 if len(set(ngr)) < self.ws:
@@ -80,12 +81,15 @@ class Corpus(object):
         logging.info("Batch data ready.")
         return X[:c], Y[:c]
 
-    def sentence_ngrams(self, s):
+    def sentence_to_examples(self, s):
         n = self.ws
         for i in xrange(len(s) - n):
-            ngr = s[i:i+n]
+            if self.future:
+                context = s[i:i+n] + s[i+n+1:i+n+1+n]
+            else:
+                context = s[i:i+n]
             y = s[i+n]
-            yield ngr, y
+            yield context, y
 
     def create_batch_matrices(self, ratios=[.7, .15, .15]):
         res = self.read_batch()
