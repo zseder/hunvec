@@ -10,5 +10,5 @@ class CBowProjectionLayer(ProjectionLayer):
         z = ProjectionLayer.fprop(self, state_below)
         bs = z.shape[0]
         d = self.dim
-        words = d / z.shape[1]
+        words = z.shape[1] / d
         return z.reshape((bs, words, d)).mean(axis=0)
