@@ -58,8 +58,6 @@ class Corpus(object):
             for ngr, y in self.sentence_to_examples(s):
                 if y == -1:
                     continue
-                if len(set(ngr)) < self.ws:
-                    continue
                 X.append(ngr)
                 if self.hs:
                     y = self.w_enc(y)
@@ -83,7 +81,9 @@ class Corpus(object):
 
     def sentence_to_examples(self, s):
         n = self.ws
-        for i in xrange(len(s) - n):
+        end = (len(s) - n if not self.future else
+               len(s) - 2 * n)
+        for i in xrange(end):
             if self.future:
                 context = s[i:i+n] + s[i+n+1:i+n+1+n]
             else:
