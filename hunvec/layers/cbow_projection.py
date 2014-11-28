@@ -1,9 +1,14 @@
 from pylearn2.models.mlp import Layer
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
 from pylearn2.utils import wraps
+from pylearn2.space import VectorSpace
 
 
 class CBowProjectionLayer(ProjectionLayer):
+    @wraps(Layer.set_input_space)
+    def set_input_space(self, space):
+        CBowProjectionLayer.set_input_space(self, space)
+        self.output_space = VectorSpace(self.input_dim)
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
