@@ -8,7 +8,7 @@ class CBowProjectionLayer(ProjectionLayer):
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
         ProjectionLayer.set_input_space(self, space)
-        self.output_space = VectorSpace(self.input_dim)
+        self.output_space = VectorSpace(self.dim)
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
