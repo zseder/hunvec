@@ -8,6 +8,7 @@ class CBowProjectionLayer(ProjectionLayer):
     @wraps(Layer.fprop)
     def fprop(self, state_below):
         z = ProjectionLayer.fprop(self, state_below)
+        bs = z.shape[0]
         d = self.dim
-        words = d / z.shape[0]
-        return z.reshape((words, d)).mean(axis=0)
+        words = d / z.shape[1]
+        return z.reshape((bs, words, d)).mean(axis=0)
