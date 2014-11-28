@@ -13,12 +13,13 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 
 from hunvec.corpus.corpus import Corpus
 from hunvec.layers.hs import HierarchicalSoftmax as HS
+from hunvec.layers.cbow_projection import CBowProjectionLayer as CBP
 
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
                  optimize_for='valid_softmax_ppl', max_epochs=20, hs=False,
-                 save_best_path='best_model_file'):
+                 save_best_path='best_model_file', cbow=False):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
@@ -26,14 +27,17 @@ class NNLM(object):
         self.max_epochs = max_epochs
         self.hs = hs
         self.save_best_path = save_best_path
+        self.cbow = cbow
 
     def add_corpus(self, corpus):
         self.corpus = corpus
         self.vocab_size = len(corpus.needed)  # for filtered words
 
     def create_model(self):
-
-        input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.5)
+        if not self.cbow:
+            input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.5)
+        else:
+            input_ = CBP(layer_name='X', dim=self.edim, irange=.5)
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.5)
         if not self.hs:
             output = Softmax(layer_name='softmax', binary_target_dim=1,
@@ -149,6 +153,8 @@ def parse_args():
         '--vocab-size', default=50000, type=int, dest='vsize')
     parser.add_argument(
         '--vectors', default='vectors.txt')
+    parser.add_argument(
+        '--cbow', action='store_true', dest='cbow')
     return parser.parse_args()
 
 
@@ -160,10 +166,11 @@ def main():
     nnlm = NNLM(
         hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
         window_size=args.window, hs=args.hs, optimize_for=args.cost,
-        save_best_path=args.model)
+        save_best_path=args.model, cbow=args.cbow)
     corpus = Corpus(
         args.corpus, batch_size=args.bsize, window_size=args.window,
-        top_n=args.vsize, hs=args.hs, max_corpus_epoch=args.cepoch)
+        top_n=args.vsize, hs=args.hs, max_corpus_epoch=args.cepoch,
+        future=args.cbow)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
