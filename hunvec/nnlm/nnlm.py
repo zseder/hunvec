@@ -45,8 +45,10 @@ class NNLM(object):
         else:
             output = HS(self.vocab_size - 1, layer_name='hs', irange=0.01)
 
-        input_space = IndexSpace(max_labels=self.vocab_size,
-                                 dim=self.window_size)
+        ws = self.window_size
+        if self.cbow:
+            ws *= 2
+        input_space = IndexSpace(max_labels=self.vocab_size, dim=ws)
         model = MLP(layers=[input_, h0, output], input_space=input_space)
         model.index2word = self.corpus.index2word
         self.model = model
