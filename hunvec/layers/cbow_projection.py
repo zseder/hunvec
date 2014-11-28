@@ -7,7 +7,7 @@ from pylearn2.space import VectorSpace
 class CBowProjectionLayer(ProjectionLayer):
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        CBowProjectionLayer.set_input_space(self, space)
+        ProjectionLayer.set_input_space(self, space)
         self.output_space = VectorSpace(self.input_dim)
 
     @wraps(Layer.fprop)
