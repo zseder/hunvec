@@ -19,7 +19,7 @@ from hunvec.layers.cbow_projection import CBowProjectionLayer as CBP
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
                  optimize_for='valid_softmax_ppl', max_epochs=20, hs=False,
-                 save_best_path='best_model_file', cbow=False):
+                 save_best_path='best_model_file', cbow=False, vectors_fn=None):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
@@ -28,10 +28,13 @@ class NNLM(object):
         self.hs = hs
         self.save_best_path = save_best_path
         self.cbow = cbow
+        self.vectors_fn = vectors_fn
 
     def add_corpus(self, corpus):
         self.corpus = corpus
-        self.vocab_size = len(corpus.needed)  # for filtered words
+        self.dataset = self.corpus.read_dataset()
+        self.vocab_size = self.dataset['train'].X_space.max_labels
+        #self.vocab_size = len(corpus.needed)  # for filtered words
 
     def create_model(self):
         if not self.cbow:
@@ -50,7 +53,6 @@ class NNLM(object):
             ws *= 2
         input_space = IndexSpace(max_labels=self.vocab_size, dim=ws)
         model = MLP(layers=[input_, h0, output], input_space=input_space)
-        model.index2word = self.corpus.index2word
         self.model = model
 
     def create_adjustors(self):
@@ -80,23 +82,13 @@ class NNLM(object):
                              #termination_criterion=term,
                              termination_criterion=epoch_cnt_crit,
                              update_callbacks=[self.learning_rate_adjustor],
-                             learning_rule=self.momentum_rule)
+                             learning_rule=self.momentum_rule,
+                             train_iteration_mode='sequential')
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
         self.num_batches = 0
 
-    def create_batch_trainer(self):
-        dataset = self.corpus.create_batch_matrices()
-        if dataset is None:
-            if hasattr(self, "algorithm"):
-                del self.algorithm
-            return None
-        if hasattr(self.model, 'monitor'):
-            del self.model.monitor
-        d = {'train': dataset[0], 'valid': dataset[1], 'test': dataset[2]}
-        self.dataset = d
-
-    def train_batch(self):
+    def train(self):
         self.algorithm.monitoring_dataset = self.dataset
         self.algorithm.setup(self.model, self.dataset['train'])
         while True:
@@ -116,19 +108,23 @@ class NNLM(object):
                 #                                       self.dataset['valid'],
                 #                                       self.algorithm)
                 logging.info("Monitoring done")
+            self.write_embedding()
             if not self.algorithm.continue_learning(self.model):
                 break
 
+    def write_embedding(self):
+        fn = self.vectors_fn
+        if fn is None:
+            return
 
-def write_embedding(corpus, nnlm, filen):
-    embedding = nnlm.model.get_params()[0].get_value()
-    with open(filen, mode='w') as outfile:
-        outfile.write('{} {}\n'.format(*embedding.shape))
-        for i in xrange(-1, embedding.shape[0]-1):
-            word = corpus.index2word[i].encode('utf8')
-            vector = ' '.join(['{0:.4}'.format(coord)
-                               for coord in embedding[i].tolist()])
-            outfile.write('{} {}\n'.format(word, vector))
+        embedding = self.model.get_params()[0].get_value()
+        with open(fn, mode='w') as outfile:
+            outfile.write('{} {}\n'.format(*embedding.shape))
+            for i in xrange(-1, embedding.shape[0]-1):
+                word = self.corpus.index2word[i].encode('utf8')
+                vector = ' '.join(['{0:.4}'.format(coord)
+                                   for coord in embedding[i].tolist()])
+                outfile.write('{} {}\n'.format(word, vector))
 
 
 def parse_args():
@@ -139,8 +135,6 @@ def parse_args():
         '--hidden-dim', default=200, type=int, dest='hdim')
     parser.add_argument(
         '--vector-dim', default=100, type=int, dest='vdim')
-    parser.add_argument(
-        '--corpus-epoch', default=2, type=int, dest='cepoch')
     parser.add_argument(
         '--batch-epoch', default=20, type=int, dest='bepoch')
     parser.add_argument(
@@ -168,24 +162,14 @@ def main():
     nnlm = NNLM(
         hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
         window_size=args.window, hs=args.hs, optimize_for=args.cost,
-        save_best_path=args.model, cbow=args.cbow)
+        save_best_path=args.model, cbow=args.cbow, vectors_fn=args.vectors)
     corpus = Corpus(
-        args.corpus, batch_size=args.bsize, window_size=args.window,
-        top_n=args.vsize, hs=args.hs, max_corpus_epoch=args.cepoch,
-        future=args.cbow)
+        hdf5_path=args.corpus, window_size=args.window,
+        top_n=args.vsize, hs=args.hs, future=args.cbow)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
-    c = 1
-    while True:
-        logging.info("{0}. batch started".format(c))
-        nnlm.create_batch_trainer()
-        if not hasattr(nnlm, 'algorithm'):
-            break
-        logging.info("Training started.")
-        nnlm.train_batch()
-        c += 1
-        write_embedding(corpus, nnlm, args.vectors)
+    nnlm.train()
 
 
 if __name__ == "__main__":
