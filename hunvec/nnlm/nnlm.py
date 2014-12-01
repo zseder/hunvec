@@ -32,8 +32,7 @@ class NNLM(object):
 
     def add_corpus(self, corpus):
         self.corpus = corpus
-        self.dataset = self.corpus.read_dataset()
-        self.vocab_size = self.dataset['train'].X_space.max_labels
+        self.dataset, self.vocab_size = self.corpus.read_dataset()
         #self.vocab_size = len(corpus.needed)  # for filtered words
 
     def create_model(self):
@@ -46,7 +45,7 @@ class NNLM(object):
             output = Softmax(layer_name='softmax', binary_target_dim=1,
                              n_classes=self.vocab_size, irange=0.5)
         else:
-            output = HS(self.vocab_size - 1, layer_name='hs', irange=0.01)
+            output = HS(self.vocab_size, layer_name='hs', irange=0.01)
 
         ws = self.window_size
         if self.cbow:
@@ -78,7 +77,7 @@ class NNLM(object):
         #cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
-        self.algorithm = SGD(batch_size=32, learning_rate=.1,
+        self.algorithm = SGD(batch_size=256, learning_rate=.1,
                              #termination_criterion=term,
                              termination_criterion=epoch_cnt_crit,
                              update_callbacks=[self.learning_rate_adjustor],
@@ -86,11 +85,11 @@ class NNLM(object):
                              train_iteration_mode='sequential')
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
-        self.num_batches = 0
 
     def train(self):
         self.algorithm.monitoring_dataset = self.dataset
         self.algorithm.setup(self.model, self.dataset['train'])
+        self.num_batches = 0
         while True:
             self.algorithm.train(dataset=self.dataset['train'])
             logging.info("Training done.")
