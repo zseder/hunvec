@@ -1,6 +1,7 @@
 #import logging
 import sys
 from random import shuffle
+import cPickle
 
 import numpy
 import tables
@@ -29,7 +30,7 @@ def create_hdf5_file(fn, X, y, num_labels):
 
 
 class Corpus(object):
-    def __init__(self, hdf5_path, corpus_fn=None, window_size=3, top_n=10000,
+    def __init__(self, dump_path, corpus_fn=None, window_size=3, top_n=10000,
                  hs=False, future=False):
         self.ws = window_size
         self.top_n = top_n
@@ -41,7 +42,7 @@ class Corpus(object):
             if hs:
                 self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
         self.corpus_fn = corpus_fn
-        self.hdf5_path = hdf5_path
+        self.dump_path = dump_path
 
     def compute_needed_words(self, fn):
         v = {}
@@ -89,13 +90,14 @@ class Corpus(object):
             y = s[i+n]
             yield context, y
 
-    def get_hdf5filenames(self):
-        tr = "{0}.train.h5".format(self.hdf5_path)
-        tst = "{0}.test.h5".format(self.hdf5_path)
-        v = "{0}.valid.h5".format(self.hdf5_path)
-        return tr, tst, v
+    def get_dump_filenames(self):
+        tr = "{0}.train.h5".format(self.dump_path)
+        tst = "{0}.test.h5".format(self.dump_path)
+        v = "{0}.valid.h5".format(self.dump_path)
+        i2w_fn = "{0}.i2w.pickle".format(self.dump_path)
+        return tr, tst, v, i2w_fn
 
-    def create_hdf5_files(self, ratios=[.7, .15, .15]):
+    def create_files(self, ratios=[.7, .15, .15]):
         res = self.read_corpus()
         if res is None:
             return None
@@ -118,11 +120,12 @@ class Corpus(object):
         valid_X = X[valid_indices, :]
         valid_y = y[valid_indices]
 
-        tr_fn, tst_fn, v_fn = self.get_hdf5filenames()
+        tr_fn, tst_fn, v_fn, i2w_fn = self.get_dump_filenames()
 
         create_hdf5_file(tr_fn, train_X, train_y, len(self.needed))
         create_hdf5_file(tst_fn, test_X, test_y, len(self.needed))
         create_hdf5_file(v_fn, valid_X, valid_y, len(self.needed))
+        cPickle.dump(self.index2word, open(i2w_fn, 'wb'), -1)
 
     def read_hdf5_to_dataset(self, fn):
         self.h5file = tables.openFile(fn, mode='r')
@@ -141,7 +144,7 @@ class Corpus(object):
         dataset.data_specs = (space, source)
 
     def read_dataset(self):
-        tr_fn, tst_fn, v_fn = self.get_hdf5filenames()
+        tr_fn, tst_fn, v_fn, i2w_fn = self.get_hdf5filenames()
         trd, m = self.read_hdf5_to_dataset(tr_fn)
         tstd, _ = self.read_hdf5_to_dataset(tst_fn)
         vd, _ = self.read_hdf5_to_dataset(v_fn)
@@ -150,11 +153,12 @@ class Corpus(object):
         self.set_spaces(trd, dim_X, dim_Y, m)
         self.set_spaces(tstd, dim_X, dim_Y, m)
         self.set_spaces(vd, dim_X, dim_Y, m)
+        self.index2word = cPickle.load(open(i2w_fn))
         return {'train': trd, 'test': tstd, 'valid': vd}, m
 
 
 def main():
-    c = Corpus(corpus_fn=sys.argv[1], hdf5_path=sys.argv[2],
+    c = Corpus(corpus_fn=sys.argv[1], dump_path=sys.argv[2],
                window_size=3, top_n=10000, hs=False, future=False)
     c.create_hdf5_files()
 
