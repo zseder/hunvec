@@ -126,8 +126,6 @@ def parse_args():
     parser.add_argument(
         '--cost', default='valid_hs_ppl')
     parser.add_argument(
-        '--vocab-size', default=50000, type=int, dest='vsize')
-    parser.add_argument(
         '--vectors', default='vectors.txt')
     parser.add_argument(
         '--cbow', action='store_true', dest='cbow')
@@ -143,9 +141,7 @@ def main():
         hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.epoch,
         window_size=args.window, hs=args.hs, optimize_for=args.cost,
         save_best_path=args.model, cbow=args.cbow, vectors_fn=args.vectors)
-    corpus = Corpus(
-        dump_path=args.corpus, window_size=args.window,
-        top_n=args.vsize, hs=args.hs, future=args.cbow)
+    corpus = Corpus(dump_path=args.corpus)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
     nnlm.create_algorithm()
