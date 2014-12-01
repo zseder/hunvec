@@ -57,14 +57,14 @@ class NNLM(object):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = 100
+        saturate = 10
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum)
 
         decay_factor = .1
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 1000, decay_factor)
+            start, saturate, decay_factor)
 
     def create_algorithm(self):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
@@ -141,7 +141,7 @@ def main():
         window_size=args.window, hs=args.hs, optimize_for=args.cost,
         save_best_path=args.model, cbow=args.cbow, vectors_fn=args.vectors)
     corpus = Corpus(
-        hdf5_path=args.corpus, window_size=args.window,
+        dump_path=args.corpus, window_size=args.window,
         top_n=args.vsize, hs=args.hs, future=args.cbow)
     nnlm.add_corpus(corpus)
     nnlm.create_model()
