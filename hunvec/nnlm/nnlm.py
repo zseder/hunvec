@@ -89,7 +89,6 @@ class NNLM(object):
         self.algorithm.monitoring_dataset = self.dataset
         self.algorithm.setup(self.model, self.dataset['train'])
         self.algorithm.train(dataset=self.dataset['train'])
-        self.algorithm.main_loop()
         self.write_embedding()
 
     def write_embedding(self):
