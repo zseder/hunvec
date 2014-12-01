@@ -97,7 +97,7 @@ class Corpus(object):
         i2w_fn = "{0}.i2w.pickle".format(self.dump_path)
         return tr, tst, v, i2w_fn
 
-    def create_files(self, ratios=[.7, .15, .15]):
+    def create_dump_files(self, ratios=[.7, .15, .15]):
         res = self.read_corpus()
         if res is None:
             return None
