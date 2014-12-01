@@ -70,7 +70,7 @@ class NNLM(object):
     def create_algorithm(self):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         cost_crit = MonitorBased(channel_name=self.optimize_for,
-                                 prop_decrease=0., N=3)
+                                 prop_decrease=0.01, N=3)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
         weightdecay = WeightDecay(coeffs=[0., 5e-5, 0.])
@@ -84,8 +84,9 @@ class NNLM(object):
                              update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule,
                              cost=cost,
+                             monitoring_dataset=self.dataset,
                              train_iteration_mode='sequential')
-        self.trainer = Train(dataset=self.dataset, model=self.model,
+        self.trainer = Train(dataset=self.dataset['train'], model=self.model,
                              algorithm=self.algorithm, extensions=[self.mbsb])
 
     def train(self):
