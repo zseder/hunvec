@@ -144,7 +144,7 @@ class Corpus(object):
         dataset.data_specs = (space, source)
 
     def read_dataset(self):
-        tr_fn, tst_fn, v_fn, i2w_fn = self.get_hdf5filenames()
+        tr_fn, tst_fn, v_fn, i2w_fn = self.get_dump_filenames()
         trd, m = self.read_hdf5_to_dataset(tr_fn)
         tstd, _ = self.read_hdf5_to_dataset(tst_fn)
         vd, _ = self.read_hdf5_to_dataset(v_fn)
@@ -160,7 +160,7 @@ class Corpus(object):
 def main():
     c = Corpus(corpus_fn=sys.argv[1], dump_path=sys.argv[2],
                window_size=3, top_n=10000, hs=False, future=False)
-    c.create_hdf5_files()
+    c.create_dump_files()
 
 if __name__ == "__main__":
     main()
