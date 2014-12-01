@@ -8,8 +8,8 @@ from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
-#from pylearn2.costs.cost import SumOfCosts
-#from pylearn2.costs.mlp import Default, WeightDecay
+from pylearn2.costs.cost import SumOfCosts
+from pylearn2.costs.mlp import Default, WeightDecay
 
 from hunvec.corpus.corpus import Corpus
 from hunvec.layers.hs import HierarchicalSoftmax as HS
@@ -33,7 +33,6 @@ class NNLM(object):
     def add_corpus(self, corpus):
         self.corpus = corpus
         self.dataset, self.vocab_size = self.corpus.read_dataset()
-        #self.vocab_size = len(corpus.needed)  # for filtered words
 
     def create_model(self):
         if not self.cbow:
@@ -69,19 +68,19 @@ class NNLM(object):
 
     def create_algorithm(self):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
-        #cost_crit = MonitorBased(channel_name=self.optimize_for,
-        #                         prop_decrease=0., N=3)
-        #term = And(criteria=[cost_crit, epoch_cnt_crit])
+        cost_crit = MonitorBased(channel_name=self.optimize_for,
+                                 prop_decrease=0., N=3)
+        term = And(criteria=[cost_crit, epoch_cnt_crit])
 
-        #weightdecay = WeightDecay(coeffs=[0., 5e-5, 0.])
-        #cost = SumOfCosts(costs=[Default(), weightdecay])
+        weightdecay = WeightDecay(coeffs=[0., 5e-5, 0.])
+        cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
         self.algorithm = SGD(batch_size=256, learning_rate=.1,
-                             #termination_criterion=term,
-                             termination_criterion=epoch_cnt_crit,
+                             termination_criterion=term,
                              update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule,
+                             cost=cost,
                              train_iteration_mode='sequential')
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
@@ -89,27 +88,9 @@ class NNLM(object):
     def train(self):
         self.algorithm.monitoring_dataset = self.dataset
         self.algorithm.setup(self.model, self.dataset['train'])
-        self.num_batches = 0
-        while True:
-            self.algorithm.train(dataset=self.dataset['train'])
-            logging.info("Training done.")
-            self.num_batches += 1
-            if self.num_batches % 10 == 0:
-                logging.info("Monitoring started")
-                self.model.monitor.report_epoch()
-                self.model.monitor()
-                self.mbsb.on_monitor(self.model, self.dataset['valid'],
-                                     self.algorithm)
-                self.momentum_adjustor.on_monitor(self.model,
-                                                  self.dataset['valid'],
-                                                  self.algorithm)
-                #self.learning_rate_adjustor.on_monitor(self.model,
-                #                                       self.dataset['valid'],
-                #                                       self.algorithm)
-                logging.info("Monitoring done")
-            self.write_embedding()
-            if not self.algorithm.continue_learning(self.model):
-                break
+        self.algorithm.train(dataset=self.dataset['train'])
+        self.algorithm.main_loop()
+        self.write_embedding()
 
     def write_embedding(self):
         fn = self.vectors_fn
@@ -135,15 +116,13 @@ def parse_args():
     parser.add_argument(
         '--vector-dim', default=100, type=int, dest='vdim')
     parser.add_argument(
-        '--batch-epoch', default=20, type=int, dest='bepoch')
+        '-e', '--epoch', default=20, type=int, dest='epoch')
     parser.add_argument(
         '--window', default=5, type=int)
     parser.add_argument(
         '--no-hierarchical-softmax', action='store_false', dest='hs')
     parser.add_argument(
         '--cost', default='valid_hs_ppl')
-    parser.add_argument(
-        '--batch-size', default=20000, type=int, dest='bsize')
     parser.add_argument(
         '--vocab-size', default=50000, type=int, dest='vsize')
     parser.add_argument(
@@ -159,7 +138,7 @@ def main():
     args = parse_args()
     logging.debug(args.cost)
     nnlm = NNLM(
-        hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.bepoch,
+        hidden_dim=args.hdim, embedding_dim=args.vdim, max_epochs=args.epoch,
         window_size=args.window, hs=args.hs, optimize_for=args.cost,
         save_best_path=args.model, cbow=args.cbow, vectors_fn=args.vectors)
     corpus = Corpus(
