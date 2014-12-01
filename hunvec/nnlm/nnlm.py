@@ -20,7 +20,8 @@ from hunvec.layers.cbow_projection import CBowProjectionLayer as CBP
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
                  optimize_for='valid_softmax_ppl', max_epochs=20, hs=False,
-                 save_best_path='best_model_file', cbow=False, vectors_fn=None):
+                 save_best_path='best_model_file', cbow=False,
+                 vectors_fn=None):
         self.hdim = hidden_dim
         self.window_size = window_size
         self.edim = embedding_dim
