@@ -7,6 +7,7 @@ from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
+from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.mlp import Default, WeightDecay
@@ -76,19 +77,19 @@ class NNLM(object):
         cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
+        self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
+                                         save_path=self.save_best_path)
         self.algorithm = SGD(batch_size=256, learning_rate=.1,
                              termination_criterion=term,
                              update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule,
                              cost=cost,
                              train_iteration_mode='sequential')
-        self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
-                                         save_path=self.save_best_path)
+        self.trainer = Train(dataset=self.dataset, model=self.model,
+                             algorithm=self.algorithm, extensions=[self.mbsb])
 
     def train(self):
-        self.algorithm.monitoring_dataset = self.dataset
-        self.algorithm.setup(self.model, self.dataset['train'])
-        self.algorithm.train(dataset=self.dataset['train'])
+        self.trainer.main_loop()
         self.write_embedding()
 
     def write_embedding(self):
