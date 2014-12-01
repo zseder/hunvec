@@ -150,7 +150,7 @@ class Corpus(object):
         self.set_spaces(trd, dim_X, dim_Y, m)
         self.set_spaces(tstd, dim_X, dim_Y, m)
         self.set_spaces(vd, dim_X, dim_Y, m)
-        return {'train': trd, 'test': tstd, 'valid': vd}
+        return {'train': trd, 'test': tstd, 'valid': vd}, m
 
 
 def main():
