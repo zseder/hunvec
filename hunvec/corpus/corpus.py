@@ -12,21 +12,26 @@ from pylearn2.space import IndexSpace, CompositeSpace
 from hunvec.utils.binary_tree import BinaryTreeEncoder
 
 
-def create_hdf5_file(fn, X, y, num_labels):
+def create_hdf5_file(fn, X_shape, y_shape, num_labels):
     h5file = tables.openFile(fn, mode="w", title="Dataset")
     filters = tables.Filters(complib='blosc', complevel=5)
     gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
-    h5file.createCArray(gcolumns, 'X', atom=tables.Int32Atom(), shape=X.shape,
+    h5file.createCArray(gcolumns, 'X', atom=tables.Int32Atom(), shape=X_shape,
                         title="Data_X", filters=filters)
-    h5file.createCArray(gcolumns, 'y', atom=tables.Int8Atom(), shape=y.shape,
+    h5file.createCArray(gcolumns, 'y', atom=tables.Int8Atom(), shape=y_shape,
                         title="Data_y", filters=filters)
     h5file.createCArray(gcolumns, 'num_labels', atom=tables.Int32Atom(),
                         shape=(1,), title="num_labels", filters=filters)
     node = h5file.getNode('/', 'Data')
-    node.X[:] = X
-    node.y[:] = y
     node.num_labels[0] = num_labels
-    h5file.close()
+    h5file.flush()
+    return h5file
+
+
+def insert_arrays_to_hdf5(h5f, X, y, start_pos):
+    node = h5f.getNode('/', 'Data')
+    node.X[start_pos:start_pos+X.shape[0], :] = X
+    node.y[start_pos:start_pos+X.shape[0], :] = y
 
 
 class Corpus(object):
@@ -37,12 +42,15 @@ class Corpus(object):
         self.skip_str = "<unk>"
         self.hs = hs
         self.future = future
+        self.corpus_fn = corpus_fn
+        self.dump_path = dump_path
         if corpus_fn is not None:
             self.compute_needed_words(corpus_fn)
             if hs:
                 self.w_enc = BinaryTreeEncoder(self.needed).word_encoder
-        self.corpus_fn = corpus_fn
-        self.dump_path = dump_path
+            self.corpus_f = open(self.corpus_fn)
+            self.num_examples = sum(len(_) for _ in self.read_corpus())
+            del self.corpus_f
 
     def compute_needed_words(self, fn):
         v = {}
@@ -61,22 +69,20 @@ class Corpus(object):
         self.needed = needed
 
     def read_corpus(self):
-        X = []
-        Y = []
-        for l in open(self.corpus_fn):
+        for l in self.corpus_f:
             l = l.decode("utf-8")
             s = l.split()
             s = [(self.vocab[w] if w in self.vocab else -1) for w in s]
+            res = []
             for ngr, y in self.sentence_to_examples(s):
                 if y == -1:
                     continue
-                X.append(ngr)
                 if self.hs:
                     y = self.w_enc(y)
                 else:
                     y = [y]
-                Y.append(y)
-        return X, Y
+                res.append((ngr, y))
+            yield res
 
     def sentence_to_examples(self, s):
         n = self.ws
@@ -97,35 +103,78 @@ class Corpus(object):
         i2w_fn = "{0}.i2w.pickle".format(self.dump_path)
         return tr, tst, v, i2w_fn
 
-    def create_dump_files(self, ratios=[.7, .15, .15]):
-        res = self.read_corpus()
-        if res is None:
-            return None
-        X, y = res
-        y = numpy.array(y, dtype=numpy.int8)
-        X = numpy.array(X)
-        total = len(y)
-        indices = range(total)
-        shuffle(indices)
-        training = int(round(total * ratios[0]))
-        valid = int(round(total * ratios[1]))
-        training_indices = indices[:training]
-        valid_indices = indices[training:training + valid]
-        test_indices = indices[training+valid:]
+    def read_batch(self, batch=10000):
+        examples = [], []
+        if hasattr(self, 'leftover'):
+            for a, b in self.leftover:
+                examples[0].append(a)
+                examples[1].append(b)
+            del self.leftover
 
-        train_X = X[training_indices, :]
-        train_y = y[training_indices]
-        test_X = X[test_indices, :]
-        test_y = y[test_indices]
-        valid_X = X[valid_indices, :]
-        valid_y = y[valid_indices]
+        try:
+            for sen_res in self.read_corpus():
+                for i, (a, b) in enumerate(sen_res):
+                    examples[0].append(a)
+                    examples[1].append(b)
+                    if len(examples[0]) == batch:
+                        self.leftover = sen_res[i+1:]
+                        return examples
+        except StopIteration:
+            pass
+        return examples
 
+    def create_dump_files(self, ratios=[.7, .15, .15], batch=100000):
+        self.corpus_f = open(self.corpus_fn)
         tr_fn, tst_fn, v_fn, i2w_fn = self.get_dump_filenames()
-
-        create_hdf5_file(tr_fn, train_X, train_y, len(self.needed))
-        create_hdf5_file(tst_fn, test_X, test_y, len(self.needed))
-        create_hdf5_file(v_fn, valid_X, valid_y, len(self.needed))
+        ws = (self.ws * 2 if self.future else self.ws)
+        sizes = [int(s * self.num_examples) + 1 for s in ratios]
+        tr_X_shape = (sizes[0], ws)
+        tr_y_shape = (sizes[0], 1)
+        tst_X_shape = (sizes[1], ws)
+        tst_y_shape = (sizes[1], 1)
+        v_X_shape = (sizes[2], ws)
+        v_y_shape = (sizes[2], 1)
+        trf = create_hdf5_file(tr_fn, tr_X_shape, tr_y_shape, len(self.needed))
+        tsf = create_hdf5_file(tst_fn, tst_X_shape, tst_y_shape,
+                               len(self.needed))
+        vf = create_hdf5_file(v_fn, v_X_shape, v_y_shape, len(self.needed))
         cPickle.dump(self.index2word, open(i2w_fn, 'wb'), -1)
+
+        bsizes = [int(s * batch) for s in ratios]
+        bc = 0
+        while True:
+            examples = self.read_batch(batch)
+            if len(examples[0]) == 0:
+                break
+            y = numpy.array(examples[1], dtype=numpy.int8)
+            X = numpy.array(examples[0])
+            total = len(y)
+            indices = range(total)
+            shuffle(indices)
+            training = bsizes[0]
+            test = bsizes[1]
+            valid = bsizes[2]
+            if total < batch:
+                training = int(total * ratios[0])
+                valid = int(total * ratios[2])
+            training_indices = indices[:training]
+            valid_indices = indices[training:training + valid]
+            test_indices = indices[training+valid:training+valid+test]
+
+            train_X = X[training_indices, :]
+            train_y = y[training_indices]
+            test_X = X[test_indices, :]
+            test_y = y[test_indices]
+            valid_X = X[valid_indices, :]
+            valid_y = y[valid_indices]
+
+            tr_start = bc * bsizes[0]
+            tst_start = bc * bsizes[1]
+            v_start = bc * bsizes[2]
+            insert_arrays_to_hdf5(trf, train_X, train_y, tr_start)
+            insert_arrays_to_hdf5(tsf, test_X, test_y, tst_start)
+            insert_arrays_to_hdf5(vf, valid_X, valid_y, v_start)
+            bc += 1
 
     def read_hdf5_to_dataset(self, fn):
         self.h5file = tables.openFile(fn, mode='r')
