@@ -18,7 +18,7 @@ def create_hdf5_file(fn, X_shape, y_shape, num_labels):
     gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
     h5file.createCArray(gcolumns, 'X', atom=tables.Int32Atom(), shape=X_shape,
                         title="Data_X", filters=filters)
-    h5file.createCArray(gcolumns, 'y', atom=tables.Int8Atom(), shape=y_shape,
+    h5file.createCArray(gcolumns, 'y', atom=tables.Int32Atom(), shape=y_shape,
                         title="Data_y", filters=filters)
     h5file.createCArray(gcolumns, 'num_labels', atom=tables.Int32Atom(),
                         shape=(1,), title="num_labels", filters=filters)
@@ -128,12 +128,13 @@ class Corpus(object):
         tr_fn, tst_fn, v_fn, i2w_fn = self.get_dump_filenames()
         ws = (self.ws * 2 if self.future else self.ws)
         sizes = [int(s * self.num_examples) + 1 for s in ratios]
+        y_shape1 = (len(self.needed) - 1 if self.hs else 1)
         tr_X_shape = (sizes[0], ws)
-        tr_y_shape = (sizes[0], 1)
+        tr_y_shape = (sizes[0], y_shape1)
         tst_X_shape = (sizes[1], ws)
-        tst_y_shape = (sizes[1], 1)
+        tst_y_shape = (sizes[1], y_shape1)
         v_X_shape = (sizes[2], ws)
-        v_y_shape = (sizes[2], 1)
+        v_y_shape = (sizes[2], y_shape1)
         trf = create_hdf5_file(tr_fn, tr_X_shape, tr_y_shape, len(self.needed))
         tsf = create_hdf5_file(tst_fn, tst_X_shape, tst_y_shape,
                                len(self.needed))
@@ -208,7 +209,7 @@ class Corpus(object):
 
 def main():
     c = Corpus(corpus_fn=sys.argv[1], dump_path=sys.argv[2],
-               window_size=3, top_n=10000, hs=False, future=False)
+               window_size=5, top_n=20000, hs=False, future=False)
     c.create_dump_files()
 
 if __name__ == "__main__":
