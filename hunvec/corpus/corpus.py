@@ -147,7 +147,8 @@ class Corpus(object):
             examples = self.read_batch(batch)
             if len(examples[0]) == 0:
                 break
-            y = numpy.array(examples[1], dtype=numpy.int8)
+            t = (numpy.int8 if self.hs else numpy.int32)
+            y = numpy.array(examples[1], dtype=t)
             X = numpy.array(examples[0])
             total = len(y)
             indices = range(total)
