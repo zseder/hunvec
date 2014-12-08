@@ -39,7 +39,7 @@ def corpus_test(model, corpus, hs=False):
             d[tuple(code)] = w
 
     dataset, v_size = corpus.read_dataset()
-    test = dataset[0]
+    test = dataset['test']
 
     for batch in test.iterator(mode='sequential', batch_size=1000):
         Y = f(batch.X)
