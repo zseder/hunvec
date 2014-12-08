@@ -127,7 +127,7 @@ class Corpus(object):
         self.corpus_f = open(self.corpus_fn)
         tr_fn, tst_fn, v_fn, i2w_fn = self.get_dump_filenames()
         ws = (self.ws * 2 if self.future else self.ws)
-        sizes = [int(s * self.num_examples) + 1 for s in ratios]
+        sizes = [int(s * self.num_examples) + 2 for s in ratios]
         y_shape1 = (len(self.needed) - 1 if self.hs else 1)
         tr_X_shape = (sizes[0], ws)
         tr_y_shape = (sizes[0], y_shape1)
