@@ -38,13 +38,13 @@ class NNLM(object):
 
     def create_model(self):
         if not self.cbow:
-            input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.5)
+            input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.1)
         else:
-            input_ = CBP(layer_name='X', dim=self.edim, irange=.5)
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.5)
+            input_ = CBP(layer_name='X', dim=self.edim, irange=.1)
+        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
         if not self.hs:
             output = Softmax(layer_name='softmax', binary_target_dim=1,
-                             n_classes=self.vocab_size, irange=0.5)
+                             n_classes=self.vocab_size, irange=0.1)
         else:
             output = HS(self.vocab_size, layer_name='hs', irange=0.01)
 
