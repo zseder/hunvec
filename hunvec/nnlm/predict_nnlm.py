@@ -40,34 +40,36 @@ def corpus_test(model, corpus, hs=False):
 
     dataset, v_size = corpus.read_dataset()
     test = dataset[0]
-    Y = f(test.X)
 
-    targets = test.get_targets()
-    outputs = targets[c*1000:(c+1)*1000]
-    for i in xrange(outputs.shape[0]):
-        tgt = outputs[i]
-        needed = tgt >= 0
-        y = Y[c*1000 + i]
-        if i == 100:
-            quit()
-        if hs:
-            probs = numpy.array([numpy.log(y[w == 0]).sum() + numpy.log(1.0 - y[w == 1]).sum()
-                                 for w in v])
-            closests = set([tuple(v[w][needed])
-                            for w in probs.argsort()[-5:]])
-            for w in probs.argsort()[-5:]:
-                ww = tuple(v[w])
-                print d[ww]
-            if tuple(tgt[needed]) in closests:
-                good += 1
+    for batch in test.iterator(mode='sequential', batch_size=1000):
+        Y = f(batch.X)
+
+        targets = batch.get_targets()
+        outputs = targets[c*1000:(c+1)*1000]
+        for i in xrange(outputs.shape[0]):
+            tgt = outputs[i]
+            needed = tgt >= 0
+            y = Y[c*1000 + i]
+            if i == 100:
+                quit()
+            if hs:
+                probs = numpy.array([numpy.log(y[w == 0]).sum() + numpy.log(1.0 - y[w == 1]).sum()
+                                     for w in v])
+                closests = set([tuple(v[w][needed])
+                                for w in probs.argsort()[-5:]])
+                for w in probs.argsort()[-5:]:
+                    ww = tuple(v[w])
+                    print d[ww]
+                if tuple(tgt[needed]) in closests:
+                    good += 1
+                else:
+                    bad += 1
             else:
-                bad += 1
-        else:
-            closests = y.argsort()[-5:]
-            print tgt
-            print closests
+                closests = y.argsort()[-5:]
+                print tgt
+                print closests
 
-        print good, bad
+            print good, bad
 
     c += 1
 
