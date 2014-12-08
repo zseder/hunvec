@@ -41,10 +41,12 @@ def corpus_test(model, corpus, hs=False):
     dataset, v_size = corpus.read_dataset()
     test = dataset['test']
 
-    for batch in test.iterator(mode='sequential', batch_size=1000):
-        Y = f(batch.X)
+    while True:
+        X, targets = test.get_batch_design(batch_size=1000,
+                                           include_labels=True)
+        Y = f(X)
 
-        targets = batch.get_targets()
+        #targets = batch.get_targets()
         outputs = targets[c*1000:(c+1)*1000]
         for i in xrange(outputs.shape[0]):
             tgt = outputs[i]
