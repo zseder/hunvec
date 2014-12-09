@@ -59,14 +59,14 @@ class NNLM(object):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = 10
+        saturate = 40
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum)
 
         decay_factor = .1
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate, decay_factor)
+            start, saturate * 1000, decay_factor)
 
     def create_algorithm(self):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
@@ -80,7 +80,7 @@ class NNLM(object):
         self.create_adjustors()
         self.mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                          save_path=self.save_best_path)
-        self.algorithm = SGD(batch_size=256, learning_rate=.1,
+        self.algorithm = SGD(batch_size=1024, learning_rate=.1,
                              termination_criterion=term,
                              update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule,
