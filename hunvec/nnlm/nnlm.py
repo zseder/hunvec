@@ -19,7 +19,7 @@ from hunvec.layers.cbow_projection import CBowProjectionLayer as CBP
 
 class NNLM(object):
     def __init__(self, hidden_dim=20, window_size=3, embedding_dim=10,
-                 optimize_for='valid_softmax_ppl', max_epochs=20, hs=False,
+                 optimize_for='softmax_ppl', max_epochs=20, hs=False,
                  save_best_path='best_model_file', cbow=False,
                  vectors_fn=None):
         self.hdim = hidden_dim
@@ -41,7 +41,7 @@ class NNLM(object):
             input_ = ProjectionLayer(layer_name='X', dim=self.edim, irange=.1)
         else:
             input_ = CBP(layer_name='X', dim=self.edim, irange=.1)
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
+        #h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
         if not self.hs:
             output = Softmax(layer_name='softmax', binary_target_dim=1,
                              n_classes=self.vocab_size, irange=0.1)
@@ -52,7 +52,7 @@ class NNLM(object):
         if self.cbow:
             ws *= 2
         input_space = IndexSpace(max_labels=self.vocab_size, dim=ws)
-        model = MLP(layers=[input_, h0, output], input_space=input_space)
+        model = MLP(layers=[input_, output], input_space=input_space)
         self.model = model
 
     def create_adjustors(self):
@@ -74,7 +74,7 @@ class NNLM(object):
                                  prop_decrease=0.01, N=3)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
-        weightdecay = WeightDecay(coeffs=[0., 5e-5, 0.])
+        weightdecay = WeightDecay(coeffs=[5e-5, 5e-5])
         cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
@@ -85,7 +85,7 @@ class NNLM(object):
                              update_callbacks=[self.learning_rate_adjustor],
                              learning_rule=self.momentum_rule,
                              cost=cost,
-                             monitoring_dataset=self.dataset,
+                             monitoring_dataset=self.dataset['valid'],
                              train_iteration_mode='sequential')
         self.trainer = Train(dataset=self.dataset['train'], model=self.model,
                              algorithm=self.algorithm, extensions=[self.mbsb])
@@ -122,9 +122,9 @@ def parse_args():
     parser.add_argument(
         '--window', default=5, type=int)
     parser.add_argument(
-        '--no-hierarchical-softmax', action='store_false', dest='hs')
+        '--hierarchical-softmax', action='store_true', dest='hs')
     parser.add_argument(
-        '--cost', default='valid_hs_ppl')
+        '--cost', default='softmax_ppl')
     parser.add_argument(
         '--vectors', default='vectors.txt')
     parser.add_argument(
