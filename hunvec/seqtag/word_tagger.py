@@ -50,8 +50,6 @@ class WordTagger(object):
 
     def create_algorithm(self, data):
         algorithm = SGD(batch_size=1, learning_rate=.1,
-                        update_callbacks=[self.learning_rate_adjustor],
-                        learning_rule=self.momentum_rule,
                         #monitoring_dataset=self.dataset['valid'],
                         train_iteration_mode='sequential')
         self.trainer = Train(dataset=data, model=self.net,
@@ -75,7 +73,7 @@ def test_data():
 def test():
     data, params = test_data()
     wt = WordTagger(**params)
-    wt.create_trainer(data)
+    wt.create_algorithm(data)
 
 
 if __name__ == "__main__":
