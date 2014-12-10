@@ -1,5 +1,5 @@
-- not to read whole corpus: done. TODO: read the file again, until there is no batch which gives any improvement. For this, there should be another validation set?
-- save HS y into log|V| sized vector instead of |V|, store only the decision nodes with +- values
-- save huffman tree into file and change the prediction according to it
-  - create a predictor that takes a language model, accepts word ngrams from stdin, and gives words as next word
-- create ppl cost into HierarchicalSoftmax
+## seq tagger
+
+- read wsj data into some data structure that will be good for SequentialSpace
+- create a word tagger MLP that will tag a word with a fixed sized window
+- create a network whose input and output spaces are sequential, runs former tagger_MLP on all words + runs a theano.scan() with an A (transition) matrix to compute final tag sequence probability
