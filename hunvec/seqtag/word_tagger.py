@@ -15,7 +15,10 @@ class WordTaggerNetwork(MLP):
         self.edim = edim
         self.n_classes = n_classes
         layers, input_space = self.create_network()
-        super(MLP, self).__init__(layers=layers, input_space=input_space)
+        input_source = ('words', 'features')
+        super(WordTaggerNetwork, self).__init__(layers=layers,
+                                                input_space=input_space,
+                                                input_source=input_source)
 
     def create_network(self):
         # words and features
