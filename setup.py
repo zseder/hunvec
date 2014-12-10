@@ -10,7 +10,7 @@ def my_setup():
         url='https://github.com/zseder/hunvec',
         packages=[
             'hunvec', 'hunvec.corpus', 'hunvec.nnlm', 'hunvec.utils',
-            'hunvec.layers',
+            'hunvec.layers', 'hunvec.seqtag',
         ],
         package_dir={'': '.'},
         include_package_data=True,
