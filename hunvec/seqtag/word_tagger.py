@@ -1,8 +1,12 @@
+import numpy
+
 from pylearn2.models.mlp import MLP, CompositeLayer, Tanh
 from pylearn2.space import CompositeSpace, IndexSpace
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.train import Train
+
+from seq_dataset import SeqDataset
 
 
 class WordTaggerNetwork(MLP):
@@ -65,15 +69,18 @@ def test_data():
         "edim": 10,
         "n_classes": 2
     }
-    X = [[0, 1, 2] + [0, 1, 0], [3, 4, 5] + [1, 1, 1]]
-    y = [0, 0]
-    return (X, y), params
+    X = [numpy.array([0, 1, 2] + [0, 1, 0]),
+         numpy.array([3, 4, 5] + [1, 1, 1])]
+    y = numpy.array([0, 0])
+    d = SeqDataset(X, y)
+    return d, params
 
 
 def test():
     data, params = test_data()
     wt = WordTagger(**params)
     wt.create_algorithm(data)
+    wt.trainer.main_loop()
 
 
 if __name__ == "__main__":
