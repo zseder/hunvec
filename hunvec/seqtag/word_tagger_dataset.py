@@ -6,9 +6,9 @@ from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.iteration import SequentialSubsetIterator
 
 
-class SeqDataset(Dataset):
+class WordTaggerDataset(Dataset):
     def __init__(self, X, y):
-        super(SeqDataset, self).__init__()
+        super(WordTaggerDataset, self).__init__()
         self.X = X
         self.y = y
         print X, y

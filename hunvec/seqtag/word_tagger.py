@@ -6,7 +6,7 @@ from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.train import Train
 
-from seq_dataset import SeqDataset
+from word_tagger_dataset import WordTaggerDataset
 
 
 class WordTaggerNetwork(MLP):
@@ -72,7 +72,7 @@ def test_data():
     X = [numpy.array([0, 1, 2] + [0, 1, 0]),
          numpy.array([3, 4, 5] + [1, 1, 1])]
     y = numpy.array([0, 0])
-    d = SeqDataset(X, y)
+    d = WordTaggerDataset(X, y)
     return d, params
 
 
