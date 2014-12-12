@@ -69,9 +69,9 @@ def test_data():
         "edim": 10,
         "n_classes": 2
     }
-    X = [numpy.array([0, 1, 2] + [0, 1, 0]),
-         numpy.array([3, 4, 5] + [1, 1, 1])]
-    y = numpy.array([0, 0])
+    X = [numpy.array([[0, 1, 2], [3, 5, 4]]),
+         numpy.array([[0, 1, 0], [1, 1, 1]])]
+    y = numpy.array([[0], [0]])
     d = WordTaggerDataset(X, y)
     return d, params
 
