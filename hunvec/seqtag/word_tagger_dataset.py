@@ -40,3 +40,21 @@ class WordTaggerDataset(Dataset):
             data_specs=self.data_specs,
         )
         return i
+
+    @staticmethod
+    def create_from_tagged_corpus(c, window_size=3, pad_num=-1):
+        words = []
+        features = []
+        y = []
+        pad = [pad_num] * window_size
+        fake_feats = [0] * window_size
+        for sen in c.corpus:
+            sen = list(pad) + sen + list(pad)
+            for word_i in xrange(window_size, len(sen)):
+                w = sen[word_i]
+                window = sen[word_i - window_size: word_i]
+                fs = fake_feats
+                words.append(window)
+                features.append(fs)
+                y.append([w])
+        return WordTaggerDataset((words, features), y)
