@@ -56,7 +56,6 @@ class WordTaggerDataset(Dataset):
             self.iteration_mode = SequentialSubsetIterator
         else:
             self.iteration_mode = iteration_mode
-            #make_np_rng([1985], which_method="random_integers")
 
     def get_num_examples(self):
         return len(self.X1)
@@ -72,7 +71,7 @@ class WordTaggerDataset(Dataset):
                  rng=None, data_specs=None, return_tuple=False):
 
         if num_batches is None:
-            num_batches = len(self.X1) / (batch_size * 100)
+            num_batches = len(self.X1) / (batch_size * 10)
 
         mode = resolve_iterator_class(mode)
 

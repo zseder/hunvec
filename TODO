@@ -2,8 +2,5 @@
 
 - read wsj data into some data structure that will be good for SequentialSpace
 - create a word tagger MLP that will tag a word with a fixed sized window
-  - sample network is done in hunvec/seqtag/word_tagger.py
-  - needs a trainer
-  - needs data for testing
   - feat_num will be later ws * feat_num that's how we will store nth feature at the actual pos
 - create a network whose input and output spaces are sequential, runs former tagger_MLP on all words + runs a theano.scan() with an A (transition) matrix to compute final tag sequence probability

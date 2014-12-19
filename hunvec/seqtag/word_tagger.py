@@ -12,7 +12,6 @@ from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.mlp import Default, WeightDecay
 from pylearn2.training_algorithms import learning_rule
-from pylearn2.monitor import Monitor
 
 from word_tagger_dataset import WordTaggerDataset
 from hunvec.corpus.tagged_corpus import TaggedCorpus
@@ -61,7 +60,7 @@ class WordTagger(object):
     def __init__(self, **kwargs):
         self.net = WordTaggerNetwork(**kwargs)
         self.optimize_for = 'valid_softmax_misclass'
-        self.max_epochs = 40
+        self.max_epochs = 100
 
     def create_adjustors(self):
         initial_momentum = .9
@@ -87,7 +86,7 @@ class WordTagger(object):
                                  prop_decrease=0., N=10)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
-        weightdecay = WeightDecay(coeffs=[5e-4, 5e-4, 5e-4])
+        weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
         cost = SumOfCosts(costs=[Default(), weightdecay])
 
         self.create_adjustors()
@@ -95,13 +94,13 @@ class WordTagger(object):
         mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
                                     save_path=save_best_path)
         algorithm = SGD(batch_size=32, learning_rate=.1,
-                        cost=cost,
-                        termination_criterion=term,
-                        monitoring_dataset=data,#['valid'],
+                        #cost=cost,
+                        #termination_criterion=term,
+                        termination_criterion=epoch_cnt_crit,
+                        monitoring_dataset=data,
                         learning_rule=self.momentum_rule,
-                        #train_iteration_mode='sequential',
                         update_callbacks=[self.learning_rate_adjustor],
-                       )
+                        )
         self.trainer = Train(dataset=data['train'], model=self.net,
                              algorithm=algorithm, extensions=[mbsb])
 
@@ -137,7 +136,7 @@ def train_brown_pos():
                     window_size=d['train'].window_size,
                     feat_num=d['train'].feat_num,
                     n_classes=d['train'].n_classes,
-                    edim=100, hdim=200)
+                    edim=200, hdim=400)
     wt.create_algorithm(d, sys.argv[2])
     wt.trainer.main_loop()
 
