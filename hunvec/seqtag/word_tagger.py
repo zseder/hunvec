@@ -1,12 +1,21 @@
+import sys
+
 import numpy
 
-from pylearn2.models.mlp import MLP, CompositeLayer, Tanh
+from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Softmax
 from pylearn2.space import CompositeSpace, IndexSpace
-from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer, Softmax
-from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
+from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 from pylearn2.train import Train
+from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
+from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
+from pylearn2.costs.cost import SumOfCosts
+from pylearn2.costs.mlp import Default, WeightDecay
+from pylearn2.training_algorithms import learning_rule
+from pylearn2.monitor import Monitor
 
 from word_tagger_dataset import WordTaggerDataset
+from hunvec.corpus.tagged_corpus import TaggedCorpus
 
 
 class WordTaggerNetwork(MLP):
@@ -51,13 +60,50 @@ class WordTaggerNetwork(MLP):
 class WordTagger(object):
     def __init__(self, **kwargs):
         self.net = WordTaggerNetwork(**kwargs)
+        self.optimize_for = 'valid_softmax_misclass'
+        self.max_epochs = 40
 
-    def create_algorithm(self, data):
-        algorithm = SGD(batch_size=1, learning_rate=.1,
-                        #monitoring_dataset=self.dataset['valid'],
-                        train_iteration_mode='sequential')
-        self.trainer = Train(dataset=data, model=self.net,
-                             algorithm=algorithm)
+    def create_adjustors(self):
+        initial_momentum = .9
+        final_momentum = .99
+        start = 1
+        saturate = self.max_epochs
+        self.momentum_adjustor = learning_rule.MomentumAdjustor(
+            final_momentum, start, saturate)
+        self.momentum_rule = learning_rule.Momentum(initial_momentum,
+                                                    nesterov_momentum=True)
+
+        decay_factor = .1
+        self.learning_rate_adjustor = LinearDecay(
+            start, saturate * 100, decay_factor)
+
+    def get_monitoring_data_specs(self):
+        return self.dataset['train'].get_data_specs()
+
+    def create_algorithm(self, data, save_best_path):
+        self.dataset = data
+        epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
+        cost_crit = MonitorBased(channel_name=self.optimize_for,
+                                 prop_decrease=0., N=10)
+        term = And(criteria=[cost_crit, epoch_cnt_crit])
+
+        weightdecay = WeightDecay(coeffs=[5e-4, 5e-4, 5e-4])
+        cost = SumOfCosts(costs=[Default(), weightdecay])
+
+        self.create_adjustors()
+
+        mbsb = MonitorBasedSaveBest(channel_name=self.optimize_for,
+                                    save_path=save_best_path)
+        algorithm = SGD(batch_size=32, learning_rate=.1,
+                        cost=cost,
+                        termination_criterion=term,
+                        monitoring_dataset=data,#['valid'],
+                        learning_rule=self.momentum_rule,
+                        #train_iteration_mode='sequential',
+                        update_callbacks=[self.learning_rate_adjustor],
+                       )
+        self.trainer = Train(dataset=data['train'], model=self.net,
+                             algorithm=algorithm, extensions=[mbsb])
 
 
 def test_data():
@@ -83,5 +129,18 @@ def test():
     wt.trainer.main_loop()
 
 
+def train_brown_pos():
+    fn = sys.argv[1]
+    c = TaggedCorpus(fn)
+    d = WordTaggerDataset.create_from_tagged_corpus(c)
+    wt = WordTagger(vocab_size=d['train'].vocab_size,
+                    window_size=d['train'].window_size,
+                    feat_num=d['train'].feat_num,
+                    n_classes=d['train'].n_classes,
+                    edim=100, hdim=200)
+    wt.create_algorithm(d, sys.argv[2])
+    wt.trainer.main_loop()
+
+
 if __name__ == "__main__":
-    test()
+    train_brown_pos()
