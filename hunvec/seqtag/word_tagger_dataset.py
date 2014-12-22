@@ -4,6 +4,7 @@ import numpy
 
 from pylearn2.datasets import Dataset
 from pylearn2.space import CompositeSpace, IndexSequenceSpace
+from pylearn2.space import VectorSequenceSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.iteration import resolve_iterator_class
 from pylearn2.utils.iteration import SequentialSubsetIterator
@@ -44,7 +45,7 @@ class WordTaggerDataset(Dataset):
         space = CompositeSpace((
             IndexSequenceSpace(max_labels=vocab_size, dim=window_size),
             IndexSequenceSpace(max_labels=feat_num, dim=window_size),
-            IndexSequenceSpace(max_labels=n_classes, dim=1)
+            VectorSequenceSpace(dim=n_classes)
         ))
         source = ('inputs', 'features', 'targets')
         self.data_specs = (space, source)
