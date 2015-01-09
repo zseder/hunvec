@@ -2,7 +2,7 @@ import sys
 
 import numpy
 
-from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Softmax
+from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Softmax, Linear
 from pylearn2.space import CompositeSpace, IndexSpace
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
@@ -50,8 +50,9 @@ class WordTaggerNetwork(MLP):
 
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
 
-        output = Softmax(layer_name='softmax', binary_target_dim=1,
-                         n_classes=self.n_classes, irange=0.1)
+        #output = Softmax(layer_name='softmax', binary_target_dim=1,
+        #                 n_classes=self.n_classes, irange=0.1)
+        output = Linear(layer_name='tagger_out', irange=.1, dim=self.n_classes)
 
         return [input_, h0, output], input_space
 
@@ -97,7 +98,7 @@ class WordTagger(object):
                         #cost=cost,
                         #termination_criterion=term,
                         termination_criterion=epoch_cnt_crit,
-                        monitoring_dataset=data,
+                        monitoring_dataset=data['valid'],
                         learning_rule=self.momentum_rule,
                         update_callbacks=[self.learning_rate_adjustor],
                         )
