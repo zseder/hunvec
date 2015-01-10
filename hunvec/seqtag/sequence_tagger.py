@@ -45,15 +45,18 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         log_added = T.log(T.exp(A_t).sum(axis=1))
 
         new_res = log_added + tagger_out
-        return softmax(new_res).flatten()
+        return new_res
 
     def expr(self, model, data, **kwargs):
         ## compute score as Collobert did
         space, source = self.get_data_specs(model)
         space.validate(data)
+        seq_score, NF = self.compute_costs(model, data, **kwargs)
+        return -(seq_score - NF)
 
+    def compute_costs(self, model, data, **kwargs):
         inputs, targets = data
-        outputs = softmax(model.fprop(inputs))
+        outputs = model.fprop(inputs)
 
         # unpack A and tagger_out from outputs
         start = outputs[0]
@@ -61,17 +64,11 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         A = outputs[2:2 + model.n_classes]
         tagger_out = outputs[2 + model.n_classes:]
 
-        # compute normalizer factor NF for this given training data
-        start_M = tagger_out[0] + start
-        combined_probs, updates = theano.scan(
-            fn=self.combine_A_tout_scanner,
-            sequences=[tagger_out[1:]],
-            non_sequences=[A],
-            outputs_info=start_M
-        )
-        end_M = combined_probs[-1] + end
-        NF = T.log(T.exp(end_M).sum())
+        seq_score = self.cost_seq(start, end, A, tagger_out, targets)
+        NF = self.cost_NF(start, end, A, tagger_out)
+        return seq_score, NF
 
+    def cost_seq(self, start, end, A, tagger_out, targets):
         # compute gold seq's score with using A and tagger_out
         gold_seq = targets.argmax(axis=1)
         seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
@@ -94,7 +91,28 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         )
         seq_score += A_seq_scores.sum()
 
-        return -(seq_score - NF)
+        return seq_score
+
+    def cost_NF(self, start, end, A, tagger_out):
+        # compute normalizer factor NF for this given training data
+        start_M = tagger_out[0] + start
+        combined_probs, updates = theano.scan(
+            fn=self.combine_A_tout_scanner,
+            sequences=[tagger_out[1:]],
+            non_sequences=[A],
+            outputs_info=start_M
+        )
+        end_M = combined_probs[-1] + end
+        NF = T.log(T.exp(end_M).sum())
+        return NF
+
+    @functools.wraps(Cost.get_monitoring_channels)
+    def get_monitoring_channels(self, model, data, **kwargs):
+        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
+        costs = self.compute_costs(model, data, **kwargs)
+        d['cost_NF'] = costs[1]
+        d['cost_seq_score'] = costs[0]
+        return d
 
 
 class SequenceTaggerNetwork(Model):
@@ -121,7 +139,7 @@ class SequenceTaggerNetwork(Model):
         self.tagger = WordTaggerNetwork(vocab_size, window_size, feat_num,
                                         hdim, edim, n_classes)
 
-        A_value = numpy.random.uniform(low=-.1, high=.1,
+        A_value = numpy.random.uniform(low=-1, high=1,
                                        size=(self.n_classes + 2,
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
@@ -140,20 +158,16 @@ class SequenceTaggerNetwork(Model):
         rval = Model.get_monitoring_channels(self, data)
         rval['A_min'] = self.A.min()
         rval['A_max'] = self.A.max()
-        rval['h0_min'] = self.tagger.layers[1].get_params()[0].min()
-        rval['h0_max'] = self.tagger.layers[1].get_params()[0].max()
+        rval['tagger_min'] = self.tagger.layers[2].get_params()[0].min()
+        rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
         return rval
-
-    #@functools.wraps(Model._modify_updates)
-    #def _modify_updates(self, updates):
-    #    updates[self.A] = softmax(self.A)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         algorithm = SGD(batch_size=1, learning_rate=.1,
                         termination_criterion=epoch_cnt_crit,
-                        monitoring_dataset=data,
+                        monitoring_dataset=data['train'],
                         #monitoring_batch_size=1,
                         #monitor_iteration_mode='sequential',
                         theano_function_mode=NanGuardMode(nan_is_error=True, inf_is_error=True),
