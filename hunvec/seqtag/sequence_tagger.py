@@ -123,15 +123,21 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
             good += 1
         else:
             bad += 1
-        for i in xrange(combined.shape[0]):
-            if T.argmax(combined[i]) == T.argmax(targets[i + 1]):
-                good += 1
+
+        def counter(c, t, g, b):
+            if T.argmax(c) == T.argmax(t):
+                g += 1
             else:
-                bad += 1
-        if T.argmax(end) == T.argmax(targets[-1]):
-            good += 1
-        else:
-            bad += 1
+                b += 1
+                return g, b
+            
+        o, u = theano.scan(
+            fn=counter,
+            sequences=[combined, targets[1:-1]],
+            outputs_info=[good, bad]
+        )
+        good += o[-1][0]
+        bad += o[-1][1]
         d['Prec'] = good / (good + bad)
 
         return d
