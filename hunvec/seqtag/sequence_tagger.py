@@ -200,9 +200,9 @@ class SequenceTaggerNetwork(Model):
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
-        algorithm = SGD(batch_size=1, learning_rate=.1,
+        algorithm = SGD(batch_size=1, learning_rate=1e-3,
                         termination_criterion=epoch_cnt_crit,
-                        monitoring_dataset=data,
+                        monitoring_dataset=data['train'],
                         #monitoring_batch_size=1,
                         #monitor_iteration_mode='sequential',
                         #theano_function_mode=NanGuardMode(nan_is_error=True, inf_is_error=True),
