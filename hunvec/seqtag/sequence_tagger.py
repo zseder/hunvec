@@ -123,7 +123,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
             good += 1
         else:
             bad += 1
-        for i in xrange(len(combined)):
+        for i in xrange(len(targets) - 1):
             if T.argmax(combined[i]) == T.argmax(targets[i + 1]):
                 good += 1
             else:
