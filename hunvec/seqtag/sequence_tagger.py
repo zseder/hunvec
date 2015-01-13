@@ -37,22 +37,12 @@ from hunvec.corpus.tagged_corpus import TaggedCorpus
 class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
     supervised = True
 
-    def combine_A_tout_scanner(self, prev_res, tagger_out, A):
-        # create a new matrix from A, add prev_res to every column
-        A_t_ = A.dimshuffle((1, 0))
-        A_t = A_t_ + prev_res
-
-        log_added = T.log(T.exp(A_t).sum(axis=1))
-
-        new_res = log_added + tagger_out
-        return new_res
-
     def expr(self, model, data, **kwargs):
         ## compute score as Collobert did
         space, source = self.get_data_specs(model)
         space.validate(data)
         seq_score, NF = self.compute_costs(model, data, **kwargs)
-        return -(seq_score - NF)
+        return -(seq_score - NF) + T.sum(T.sqr(abs(model.A)))
 
     def compute_costs(self, model, data, **kwargs):
         inputs, targets = data
@@ -93,6 +83,17 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
         return seq_score
 
+    def combine_A_tout_scanner(self, tagger_out, prev_res, A):
+        # create a new matrix from A, add prev_res to every column
+        A_t_ = A.dimshuffle((1, 0))
+        A_t = A_t_ + prev_res
+
+        #log_added = T.log(T.exp(A_t).sum(axis=1))
+        log_added = A_t.max(axis=1)
+
+        new_res = log_added + tagger_out
+        return new_res
+
     def cost_NF(self, start, end, A, tagger_out):
         # compute normalizer factor NF for this given training data
         start_M = tagger_out[0] + start
@@ -100,10 +101,11 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
             fn=self.combine_A_tout_scanner,
             sequences=[tagger_out[1:]],
             non_sequences=[A],
-            outputs_info=start_M
+            outputs_info=[start_M]
         )
         end_M = combined_probs[-1] + end
-        NF = T.log(T.exp(end_M).sum())
+        #NF = T.log(T.exp(end_M).sum())
+        NF = end_M.max()
         return NF
 
     @functools.wraps(Cost.get_monitoring_channels)
@@ -111,7 +113,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         d = Cost.get_monitoring_channels(self, model, data, **kwargs)
         costs = self.compute_costs(model, data, **kwargs)
         d['cost_NF'] = costs[1]
-        d['cost_seq_score'] = costs[0]
+        d['cost_seq_score'] = -costs[0]
         return d
 
 
@@ -139,7 +141,7 @@ class SequenceTaggerNetwork(Model):
         self.tagger = WordTaggerNetwork(vocab_size, window_size, feat_num,
                                         hdim, edim, n_classes)
 
-        A_value = numpy.random.uniform(low=-1, high=1,
+        A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
@@ -156,8 +158,15 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         rval = Model.get_monitoring_channels(self, data)
-        rval['A_min'] = self.A.min()
-        rval['A_max'] = self.A.max()
+        rval['A_min'] = self.A[2:].min()
+        rval['A_max'] = self.A[2:].max()
+        rval['A_mean'] = self.A[2:].mean()
+        rval['start_min'] = self.A[0].min()
+        rval['start_max'] = self.A[0].max()
+        rval['start_mean'] = self.A[0].mean()
+        rval['end_min'] = self.A[1].min()
+        rval['end_max'] = self.A[1].max()
+        rval['end_mean'] = self.A[1].mean()
         rval['tagger_min'] = self.tagger.layers[2].get_params()[0].min()
         rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
         return rval
@@ -167,10 +176,10 @@ class SequenceTaggerNetwork(Model):
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         algorithm = SGD(batch_size=1, learning_rate=.1,
                         termination_criterion=epoch_cnt_crit,
-                        monitoring_dataset=data['train'],
+                        monitoring_dataset=data,
                         #monitoring_batch_size=1,
                         #monitor_iteration_mode='sequential',
-                        theano_function_mode=NanGuardMode(nan_is_error=True, inf_is_error=True),
+                        #theano_function_mode=NanGuardMode(nan_is_error=True, inf_is_error=True),
                         cost=SeqTaggerCost(),
                         )
         self.trainer = Train(dataset=data['train'], model=self,
@@ -223,7 +232,7 @@ def init_brown():
                                window_size=d['train'].window_size,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=10, hdim=20)
+                               edim=100, hdim=200)
     return c, d, wt
 
 
