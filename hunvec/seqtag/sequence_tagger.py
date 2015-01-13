@@ -124,13 +124,13 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         else:
             bad += 1
 
-        def counter(c, t, g, b):
+        def counter(g, b, c, t):
             if T.argmax(c) == T.argmax(t):
                 g += 1
             else:
                 b += 1
-                return g, b
-            
+            return g, b
+
         o, u = theano.scan(
             fn=counter,
             sequences=[combined, targets[1:-1]],
