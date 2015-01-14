@@ -117,8 +117,6 @@ class WordTaggerDataset(Dataset):
 
             if len(sen_words) < 3:
                 continue
-            #if len(sen_words) > 20:
-            #    continue
 
             words.append(numpy.array(sen_words))
             features.append(numpy.array(sen_features))
@@ -133,7 +131,7 @@ class WordTaggerDataset(Dataset):
         y = y_
 
         return create_splitted_datasets(words, features, y, ratios,
-                                        vocab_size=max(vocab),
+                                        vocab_size=len(vocab),
                                         window_size=window_size,
                                         feat_num=len(feats),
                                         n_classes=len(classes))
