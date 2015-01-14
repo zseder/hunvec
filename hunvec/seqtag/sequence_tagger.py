@@ -228,7 +228,7 @@ class SequenceTaggerNetwork(Model):
                         cost=SeqTaggerCost(),
                         )
         self.trainer = Train(dataset=data['train'], model=self,
-                             algorithm=algorithm)
+                             algorithm=algorithm, extensions=[self.mbsb])
 
 
 def test_data():
