@@ -120,7 +120,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         start, combined, end = costs[1:]
         _, targets = data
         good, bad = 0., 0.
-        if T.argmax(start) == T.argmax(targets[0]):
+        if T.eq(T.argmax(start), T.argmax(targets[0])).sum() == 1:
             good += 1
         else:
             bad += 1
@@ -134,7 +134,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
                            outputs_info=None)
         bad += T.sum(o)
 
-        if T.argmax(end) == T.argmax(targets[-1]):
+        if T.eq(T.argmax(end), T.argmax(targets[-1])).sum() == 1:
             good += 1
         else:
             bad += 1
@@ -277,7 +277,7 @@ def init_brown():
                                window_size=d['train'].window_size,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=100, hdim=200)
+                               edim=10, hdim=20)
     return c, d, wt
 
 
@@ -324,5 +324,5 @@ def predict_test():
 
 if __name__ == "__main__":
     #predict_test()
-    #train_brown_pos()
-    load_and_predict()
+    train_brown_pos()
+    #load_and_predict()
