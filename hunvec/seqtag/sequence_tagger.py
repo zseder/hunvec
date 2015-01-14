@@ -15,6 +15,7 @@ from pylearn2.termination_criteria import EpochCounter
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
+from pylearn2.utils import serial
 #from pylearn2.devtools.nan_guard import NanGuardMode
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
@@ -172,6 +173,21 @@ class SequenceTaggerNetwork(Model):
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
 
+    def __getstate__(self):
+        d = {}
+        d['vocab_size'] = self.vocab_size
+        d['window_size'] = self.window_size
+        d['feat_num'] = self.feat_num
+        d['n_classes'] = self.n_classes
+        d['max_epochs'] = self.max_epochs
+        d['input_space'] = self.input_space
+        d['output_space'] = self.output_space
+        d['input_source'] = self.input_source
+        d['target_source'] = self.target_source
+        d['A'] = self.A
+        d['tagger'] = self.tagger
+        return d
+
     def fprop(self, data):
         tagger_out = self.tagger.fprop(data)
         probs = T.concatenate([self.A, tagger_out])
@@ -271,6 +287,17 @@ def train_brown_pos():
     wt.trainer.main_loop()
 
 
+def load_and_predict():
+    c, d, _ = init_brown()
+    wt = serial.load(sys.argv[2])
+    print d['train'].y[0]
+    X = wt.get_input_space().make_theano_batch()
+    Y = wt.fprop(X)
+    f = theano.function([X[0], X[1]], Y)
+    y = f(d['train'].X1[0], d['train'].X2[0])
+    print y
+
+
 def predict_test():
     c, d, wt = init_brown()
     #print d['train'].y[0]
@@ -293,4 +320,5 @@ def predict_test():
 
 if __name__ == "__main__":
     #predict_test()
-    train_brown_pos()
+    #train_brown_pos()
+    load_and_predict()
