@@ -24,3 +24,7 @@ class TaggedCorpus(object):
         self.corpus = d
         self.p2i = p2i
         self.w2i = w2i
+        self.i2p = [w for w, i in
+                    sorted(self.p2i.iteritems(), key=lambda x: x[1])]
+        self.i2w = [w for w, i in
+                    sorted(self.w2i.iteritems(), key=lambda x: x[1])]
