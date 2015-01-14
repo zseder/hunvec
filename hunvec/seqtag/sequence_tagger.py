@@ -291,11 +291,15 @@ def load_and_predict():
     c, d, _ = init_brown()
     wt = serial.load(sys.argv[2])
     print d['train'].y[0]
-    X = wt.get_input_space().make_theano_batch()
-    Y = wt.fprop(X)
-    f = theano.function([X[0], X[1]], Y)
-    y = f(d['train'].X1[0], d['train'].X2[0])
-    print y
+    cost = SeqTaggerCost()
+    words = T.matrix('words', dtype='int64')
+    features = T.matrix('features', dtype='int64')
+    targets = T.matrix('targets', dtype='float32')
+    cost_expression = cost.compute_costs(wt, ((words, features), targets))
+    fn = theano.function(inputs=[words, features, targets],
+                         outputs=cost_expression)
+    res = fn(d['train'].X1[0], d['train'].X2[0], d['train'].y[0])
+    print res[1].argmax(), res[2].argmax(axis=1), res[3].argmax()
 
 
 def predict_test():
