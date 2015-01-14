@@ -62,7 +62,6 @@ class WordTaggerDataset(Dataset):
         return self.data_specs
 
     def get_data(self):
-        #return itertools.izip(self.X1, self.X2, self.y)
         return self.X1, self.X2, self.y
 
     @functools.wraps(Dataset.iterator)
