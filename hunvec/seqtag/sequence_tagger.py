@@ -13,7 +13,8 @@ from pylearn2.utils import sharedX
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.training_algorithms.sgd import SGD
-from pylearn2.train import Train, MonitorBasedSaveBest
+from pylearn2.train import Train
+from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 #from pylearn2.devtools.nan_guard import NanGuardMode
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
