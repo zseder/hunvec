@@ -5,7 +5,6 @@ import numpy
 
 import theano
 import theano.tensor as T
-from theano.tensor.nnet import softmax
 
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace, IndexSequenceSpace
@@ -14,8 +13,8 @@ from pylearn2.utils import sharedX
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.training_algorithms.sgd import SGD
-from pylearn2.train import Train
-from pylearn2.devtools.nan_guard import NanGuardMode
+from pylearn2.train import Train, MonitorBasedSaveBest
+#from pylearn2.devtools.nan_guard import NanGuardMode
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
@@ -200,12 +199,15 @@ class SequenceTaggerNetwork(Model):
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
+        self.mbsb = MonitorBasedSaveBest(channel_name='objective',
+                                         save_path=save_best_path)
         algorithm = SGD(batch_size=1, learning_rate=1e-3,
                         termination_criterion=epoch_cnt_crit,
                         monitoring_dataset=data['train'],
                         #monitoring_batch_size=1,
                         #monitor_iteration_mode='sequential',
-                        #theano_function_mode=NanGuardMode(nan_is_error=True, inf_is_error=True),
+                        #theano_function_mode=NanGuardMode(
+                        #    nan_is_error=True, inf_is_error=True),
                         cost=SeqTaggerCost(),
                         )
         self.trainer = Train(dataset=data['train'], model=self,
