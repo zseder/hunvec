@@ -290,7 +290,7 @@ def train_brown_pos():
 def load_and_predict():
     c, d, _ = init_brown()
     wt = serial.load(sys.argv[2])
-    print d['train'].y[0]
+    print d['train'].y[0].argmax(axis=1)
     cost = SeqTaggerCost()
     words = T.matrix('words', dtype='int64')
     features = T.matrix('features', dtype='int64')
