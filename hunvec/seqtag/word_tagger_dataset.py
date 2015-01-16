@@ -114,6 +114,9 @@ class WordTaggerDataset(Dataset):
                     feats = sen[i][2]
                     if feats == pad_num:
                         feats = c.featurizer.fake_features()
+
+                    # copy features to not change sentence data
+                    feats = list(feats)
                     for feat_i in xrange(len(feats)):
                         feats[feat_i] += mul * c.featurizer.total
                     fs += feats
