@@ -12,7 +12,8 @@ from hunvec.utils.data_splitter import datasplit, shuffled_indices
 
 
 def create_splitted_datasets(wa, fa, ya, ratios,
-                             vocab_size, window_size, feat_num, n_classes):
+                             vocab_size, window_size, total_feats, feat_num,
+                             n_classes):
     indices = shuffled_indices(len(wa), ratios)
     wa_train, wa_test, wa_valid = datasplit(wa, indices, ratios)
     fa_train, fa_test, fa_valid = datasplit(fa, indices, ratios)
@@ -20,6 +21,7 @@ def create_splitted_datasets(wa, fa, ya, ratios,
     kwargs = {
         "vocab_size": vocab_size,
         "window_size": window_size,
+        "total_feats": total_feats,
         "feat_num": feat_num,
         "n_classes": n_classes,
     }
@@ -35,22 +37,25 @@ def create_splitted_datasets(wa, fa, ya, ratios,
 
 
 class WordTaggerDataset(Dataset):
-    def __init__(self, X, y, vocab_size, window_size, feat_num, n_classes):
+    def __init__(self, X, y, vocab_size, window_size, total_feats, feat_num,
+                 n_classes):
         super(WordTaggerDataset, self).__init__()
         self.X1 = X[0]
         self.X2 = X[1]
         self.y = y
+        self.vocab_size = vocab_size
+        self.window_size = window_size
+        self.total_feats = total_feats * window_size
+        self.feat_num = feat_num * window_size
+        self.n_classes = n_classes
         space = CompositeSpace((
             IndexSequenceSpace(max_labels=vocab_size, dim=window_size),
-            IndexSequenceSpace(max_labels=feat_num, dim=window_size),
+            IndexSequenceSpace(max_labels=self.total_feats,
+                               dim=self.feat_num),
             VectorSequenceSpace(dim=n_classes)
         ))
         source = ('words', 'features', 'targets')
         self.data_specs = (space, source)
-        self.vocab_size = vocab_size
-        self.window_size = window_size
-        self.feat_num = feat_num
-        self.n_classes = n_classes
 
     def get_num_examples(self):
         return len(self.X1)
@@ -106,11 +111,18 @@ class WordTaggerDataset(Dataset):
 
                 # combine together features for indices
                 fs = []
-                for i in xrange(word_i - window_size + 1, word_i + 1):
+                r = range(word_i - window_size + 1, word_i + 1)
+                for mul, i in enumerate(r):
                     feats = sen[i][2]
                     if feats == pad_num:
                         feats = c.featurizer.fake_features()
+                    for feat_i in xrange(len(feats)):
+                        feats[feat_i] += mul * c.featurizer.total
                     fs += feats
+                print c.featurizer.total
+                print c.featurizer.feat_num
+                print fs
+                quit()
 
                 sen_words.append(window)
                 sen_features.append(fs)
@@ -126,7 +138,6 @@ class WordTaggerDataset(Dataset):
             words.append(numpy.array(sen_words))
             features.append(numpy.array(sen_features))
             y.append(sen_y)
-            quit()
 
         y_ = []
         for sen_y in y:
@@ -139,5 +150,6 @@ class WordTaggerDataset(Dataset):
         return create_splitted_datasets(words, features, y, ratios,
                                         vocab_size=len(vocab),
                                         window_size=window_size,
-                                        feat_num=c.featurizer.total,
+                                        total_feats=c.featurizer.total,
+                                        feat_num=c.featurizer.feat_num,
                                         n_classes=len(classes))

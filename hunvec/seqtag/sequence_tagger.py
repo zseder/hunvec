@@ -7,8 +7,7 @@ import theano
 import theano.tensor as T
 
 from pylearn2.models.model import Model
-from pylearn2.space import CompositeSpace, IndexSequenceSpace
-from pylearn2.space import VectorSequenceSpace
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import sharedX
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.termination_criteria import EpochCounter
@@ -21,6 +20,7 @@ from pylearn2.utils import serial
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
 from hunvec.corpus.tagged_corpus import TaggedCorpus
+from hunvec.feature.featurizer import Featurizer
 
 
         #if T.lt(tagger_out.shape[0], 2):
@@ -145,27 +145,29 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
 
 class SequenceTaggerNetwork(Model):
-    def __init__(self, vocab_size, window_size, feat_num, hdim, edim,
-                 n_classes, max_epochs=100):
+    def __init__(self, vocab_size, window_size, total_feats, feat_num,
+                 hdim, edim, n_classes, dataset, max_epochs=100):
 
         super(SequenceTaggerNetwork, self).__init__()
 
         self.vocab_size = vocab_size
         self.window_size = window_size
+        self.total_feats = total_feats
         self.feat_num = feat_num
         self.n_classes = n_classes
         self.max_epochs = max_epochs
 
         self.input_space = CompositeSpace([
-            IndexSequenceSpace(max_labels=vocab_size, dim=window_size),
-            IndexSequenceSpace(max_labels=feat_num, dim=window_size)
+            dataset.data_specs[0].components[0],
+            dataset.data_specs[0].components[1],
         ])
-        self.output_space = VectorSequenceSpace(dim=n_classes)
+        self.output_space = dataset.data_specs[0].components[2]
 
         self.input_source = ('words', 'features')
         self.target_source = 'targets'
 
-        self.tagger = WordTaggerNetwork(vocab_size, window_size, feat_num,
+        self.tagger = WordTaggerNetwork(vocab_size, window_size,
+                                        self.total_feats, self.feat_num,
                                         hdim, edim, n_classes)
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
@@ -271,13 +273,15 @@ def test():
 
 def init_brown():
     fn = sys.argv[1]
-    c = TaggedCorpus(fn)
+    featurizer = Featurizer()
+    c = TaggedCorpus(fn, featurizer)
     d = WordTaggerDataset.create_from_tagged_corpus(c)
     wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
                                window_size=d['train'].window_size,
+                               total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=10, hdim=20)
+                               edim=10, hdim=20, dataset=d['train'])
     return c, d, wt
 
 

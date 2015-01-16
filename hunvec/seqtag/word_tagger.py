@@ -18,10 +18,11 @@ from hunvec.corpus.tagged_corpus import TaggedCorpus
 
 
 class WordTaggerNetwork(MLP):
-    def __init__(self, vocab_size, window_size, feat_num, hdim, edim,
-                 n_classes):
+    def __init__(self, vocab_size, window_size, total_feats, feat_num,
+                 hdim, edim, n_classes):
         self.vocab_size = vocab_size
         self.ws = window_size
+        self.total_feats = total_feats
         self.feat_num = feat_num
         self.hdim = hdim
         self.edim = edim
@@ -36,7 +37,7 @@ class WordTaggerNetwork(MLP):
         # words and features
         input_space = CompositeSpace([
             IndexSpace(max_labels=self.vocab_size, dim=self.ws),
-            IndexSpace(max_labels=self.feat_num, dim=self.ws)
+            IndexSpace(max_labels=self.total_feats, dim=self.feat_num)
         ])
 
         input_ = CompositeLayer(
