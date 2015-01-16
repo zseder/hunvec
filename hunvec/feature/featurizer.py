@@ -14,6 +14,8 @@ def suffix_ngram_feature(word, n=3, end_index=None):
     w2 = ("^" * n) + word.lower() + "$"
     if end_index is not None:
         return w2[-n+end_index:end_index]
+    else:
+        return w2[-n:]
 snf = suffix_ngram_feature
 
 
@@ -62,7 +64,10 @@ class Featurizer(object):
                 loc = self.feat_shifts[feat_i] + self.kept[feat_i][f]
             else:
                 # not kept feature
-                loc = self.feat_shifts[feat_i + 1] - 1
+                if feat_i + 1 < len(self.feat_shifts):
+                    loc = self.feat_shifts[feat_i + 1] - 1
+                else:
+                    loc = self.total - 1
             all_w_feats.append(loc)
 
         return all_w_feats
