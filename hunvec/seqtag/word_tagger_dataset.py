@@ -79,13 +79,11 @@ class WordTaggerDataset(Dataset):
         mode = resolve_iterator_class(mode)
         if data_specs is None:
             data_specs = self.data_specs
-        #convert = [lambda x: x[0]] * len(data_specs[1])
 
         i = FiniteDatasetIterator(
             self,
             mode(len(self.X1), batch_size, num_batches, rng),
             data_specs=data_specs, return_tuple=return_tuple,
-            #convert=convert
         )
         return i
 
