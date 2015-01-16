@@ -117,10 +117,6 @@ class WordTaggerDataset(Dataset):
                     for feat_i in xrange(len(feats)):
                         feats[feat_i] += mul * c.featurizer.total
                     fs += feats
-                print c.featurizer.total
-                print c.featurizer.feat_num
-                print fs
-                quit()
 
                 sen_words.append(window)
                 sen_features.append(fs)
