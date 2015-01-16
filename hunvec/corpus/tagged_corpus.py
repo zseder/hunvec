@@ -36,7 +36,7 @@ class TaggedCorpus(object):
         for sen_i in xrange(len(self.corpus)):
             sen = self.corpus[sen_i]
             for i in xrange(len(sen)):
-                sen[i][0] = w2i.setdefault(sen[i][0], len(w2i))
+                sen[i][0] = w2i.setdefault(sen[i][0].lower(), len(w2i))
                 sen[i][1] = t2i.setdefault(sen[i][1], len(t2i))
 
         self.t2i = t2i
