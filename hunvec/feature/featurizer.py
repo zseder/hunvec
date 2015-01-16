@@ -62,7 +62,7 @@ class Featurizer(object):
                 loc = self.feat_shifts[feat_i] + self.kept[feat_i][f]
             else:
                 # not kept feature
-                loc = self.feat_sfifts[feat_i + 1] - 1
+                loc = self.feat_shifts[feat_i + 1] - 1
             all_w_feats.append(loc)
 
         return all_w_feats
