@@ -8,14 +8,12 @@ def case_feature(word):
         return 'case:lower'
     elif word[0].isupper() and word[1:].islower():
         return 'case:capital'
-    else:
-        return None
 
 
 def suffix_ngram_feature(word, n=3, end_index=None):
-    w2 = ("^" * n) + word + "$"
+    w2 = ("^" * n) + word.lower() + "$"
     if end_index is not None:
-        return w2[-n-end_index:-end_index]
+        return w2[-n+end_index:end_index]
 snf = suffix_ngram_feature
 
 
@@ -27,6 +25,7 @@ class Featurizer(object):
             lambda x: snf(x, 3, -1),  # "last but one" three
             lambda x: snf(x, 3, -2),
         ]
+        self.feat_num = len(self.feats)
 
     def preprocess_corpus(self, corpus):
         """ reads the whole corpus to preprocess features for detecting
@@ -37,6 +36,8 @@ class Featurizer(object):
             for word, _ in sentence:
                 for i, feat in enumerate(self.feats):
                     w_feat = feat(word)
+                    if w_feat is None:
+                        continue
                     feature_counters[i][w_feat] += 1
         self.keep_features(feature_counters)
 
