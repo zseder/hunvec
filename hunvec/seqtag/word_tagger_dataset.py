@@ -90,10 +90,9 @@ class WordTaggerDataset(Dataset):
         words = []
         features = []
         y = []
-        pad = [(pad_num, pad_num)] * (window_size - 1)
+        pad = [(pad_num, pad_num, pad_num)] * (window_size - 1)
         # include the word itself
-        fake_feats = [0] * (window_size)
-        vocab, classes, feats = set(), set(), set()
+        vocab, classes = set(), set()
         for sen in c.corpus:
             sen = list(pad) + sen + list(pad)
             sen_words, sen_features, sen_y = [], [], []
@@ -102,16 +101,23 @@ class WordTaggerDataset(Dataset):
                 tag = sen[word_i][1]
 
                 # the word is there, too
-                window = [w for w, p in
+                window = [w for w, _, _ in
                           sen[word_i - window_size + 1: word_i + 1]]
-                fs = fake_feats
+
+                # combine together features for indices
+                fs = []
+                for i in xrange(word_i - window_size + 1, word_i + 1):
+                    feats = sen[i][2]
+                    if feats == pad_num:
+                        feats = c.featurizer.fake_features()
+                    fs += feats
+
                 sen_words.append(window)
                 sen_features.append(fs)
                 sen_y.append([tag])
 
                 # counting
                 vocab |= set(window)
-                feats |= set(fs)
                 classes.add(tag)
 
             if len(sen_words) < 3:
@@ -120,6 +126,7 @@ class WordTaggerDataset(Dataset):
             words.append(numpy.array(sen_words))
             features.append(numpy.array(sen_features))
             y.append(sen_y)
+            quit()
 
         y_ = []
         for sen_y in y:
@@ -132,5 +139,5 @@ class WordTaggerDataset(Dataset):
         return create_splitted_datasets(words, features, y, ratios,
                                         vocab_size=len(vocab),
                                         window_size=window_size,
-                                        feat_num=len(feats),
+                                        feat_num=c.featurizer.total,
                                         n_classes=len(classes))
