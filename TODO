@@ -7,3 +7,8 @@ But in a sentence, there is n words and for a word, there is f features.
 
 1. use mutually exclusive features where possible (who gives a partitioning) like (lowercase, uppercase, camelcase, neither), or add redundant features for positive and negative presence, so the number of present features will be fixed. ["lower", "in_fornames_list=False"]
 2. if we will definitely need a variable number of features, we can create a small ConvNet like network, that will transform any number of features into a vector, and then we can use VectorSequenceSpace as features for a sentence: for a given word (window) only a vectorspace input will be needed
+
+### Refactor
+#
+- cost SeqTaggerCost should go to a different file (not sequence_tagger.py)
+- WordTaggerDataset.create_from_tagged_corpus is quite complex
