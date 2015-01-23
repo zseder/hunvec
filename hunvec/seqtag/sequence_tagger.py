@@ -232,7 +232,7 @@ class SequenceTaggerNetwork(Model):
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name=self.optimize_for,
+        cost_crit = MonitorBased(channel_name='Prec',
                                  prop_decrease=0., N=10)
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
@@ -240,7 +240,7 @@ class SequenceTaggerNetwork(Model):
         #cost = SumOfCosts(costs=[SeqTaggerCost(), weightdecay])
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
-        algorithm = SGD(batch_size=1, learning_rate=1e-3,
+        algorithm = SGD(batch_size=1, learning_rate=1e-1,
                         termination_criterion=term,
                         monitoring_dataset=data['valid'],
                         cost=SeqTaggerCost(),
