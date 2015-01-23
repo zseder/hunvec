@@ -9,19 +9,139 @@ import theano.tensor as T
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import sharedX
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
-from pylearn2.costs.cost import LpPenalty, SumOfCosts
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
 from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.feature.featurizer import Featurizer
-from hunvec.cost.seq_tagger_cost import SeqTaggerCost
+
+
+        #if T.lt(tagger_out.shape[0], 2):
+        #    return start_mask
+
+        # tout: tagger output
+        # fn = lambda res_probs, tout: theano.dot(self.A, res_probs) * tout
+
+        #(probs_after_A, updates) = theano.scan(
+        #    fn=fn,
+        #    sequences=[tagger_out[1:]],
+        #    outputs_info=start_mask,
+        #)
+
+class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
+    supervised = True
+
+    def expr(self, model, data, **kwargs):
+        ## compute score as Collobert did
+        space, source = self.get_data_specs(model)
+        space.validate(data)
+        seq_score, _, _, end = self.compute_costs(model, data, **kwargs)
+        NF = T.max(end)
+        return -(seq_score - NF) + T.sum(T.sqr(abs(model.A)))
+
+    def compute_costs(self, model, data, **kwargs):
+        inputs, targets = data
+        outputs = model.fprop(inputs)
+
+        # unpack A and tagger_out from outputs
+        start = outputs[0]
+        end = outputs[1]
+        A = outputs[2:2 + model.n_classes]
+        tagger_out = outputs[2 + model.n_classes:]
+
+        seq_score = self.cost_seq(start, end, A, tagger_out, targets)
+        start_M, combined, end_M = self.combined_scores(
+            start, end, A, tagger_out)
+        return seq_score, start_M, combined, end_M
+
+    def cost_seq(self, start, end, A, tagger_out, targets):
+        # compute gold seq's score with using A and tagger_out
+        gold_seq = targets.argmax(axis=1)
+        seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
+
+        # tagger_out_scores
+        tout_chooser = lambda gold_index, i: tagger_out[i][gold_index]
+        tout_seq_scores, updates = theano.scan(
+            fn=tout_chooser,
+            sequences=[gold_seq, T.arange(gold_seq.shape[0])],
+            outputs_info=None
+        )
+        seq_score += tout_seq_scores.sum()
+
+        # A matrix scores
+        A_chooser = lambda i, next_i: A[i][next_i]
+        A_seq_scores, updates = theano.scan(
+            fn=A_chooser,
+            sequences=[gold_seq[:-1], gold_seq[1:]],
+            outputs_info=None
+        )
+        seq_score += A_seq_scores.sum()
+
+        return seq_score
+
+    def combine_A_tout_scanner(self, tagger_out, prev_res, A):
+        # create a new matrix from A, add prev_res to every column
+        A_t_ = A.dimshuffle((1, 0))
+        A_t = A_t_ + prev_res
+
+        #log_added = T.log(T.exp(A_t).sum(axis=1))
+        log_added = A_t.max(axis=1)
+
+        new_res = log_added + tagger_out
+        return new_res
+
+    def combined_scores(self, start, end, A, tagger_out):
+        # compute normalizer factor NF for this given training data
+        start_M = tagger_out[0] + start
+        combined_probs, updates = theano.scan(
+            fn=self.combine_A_tout_scanner,
+            sequences=[tagger_out[1:]],
+            non_sequences=[A],
+            outputs_info=[start_M]
+        )
+
+        end_M = combined_probs[-1] + end
+        return start_M, combined_probs[:-1], end_M
+
+    @functools.wraps(Cost.get_monitoring_channels)
+    def get_monitoring_channels(self, model, data, **kwargs):
+        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
+        costs = self.compute_costs(model, data, **kwargs)
+        d['cost_seq_score'] = -costs[0]
+        d['NF'] = -T.max(costs[3])
+
+        start, combined, end = costs[1:]
+        _, targets = data
+        good, bad = 0., 0.
+        if T.eq(T.argmax(start), T.argmax(targets[0])).sum() == 1:
+            good += 1
+        else:
+            bad += 1
+
+        same = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
+        notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
+        o, u = theano.scan(fn=same, sequences=[combined, targets[1:-1]],
+                           outputs_info=None)
+        good += T.sum(o)
+        o, u = theano.scan(fn=notsame, sequences=[combined, targets[1:-1]],
+                           outputs_info=None)
+        bad += T.sum(o)
+
+        if T.eq(T.argmax(end), T.argmax(targets[-1])).sum() == 1:
+            good += 1
+        else:
+            bad += 1
+
+        d['Prec'] = T.cast(good / (good + bad), dtype='floatX')
+
+        return d
 
 
 class SequenceTaggerNetwork(Model):
@@ -70,36 +190,10 @@ class SequenceTaggerNetwork(Model):
         d['tagger'] = self.tagger
         return d
 
-    def combine_A_tout_scanner(self, tagger_out, prev_res, A):
-        # create a new matrix from A, add prev_res to every column
-        A_t_ = A.dimshuffle((1, 0))
-        A_t = A_t_ + prev_res
-
-        log_added = A_t.max(axis=1)
-
-        new_res = log_added + tagger_out
-        return new_res
-
-    def combined_scores(self, tagger_out):
-        # compute normalizer factor NF for this given training data
-        A = self.A
-        start_M = tagger_out[0] + A[0]
-        combined_probs, updates = theano.scan(
-            fn=self.combine_A_tout_scanner,
-            sequences=[tagger_out[1:]],
-            non_sequences=[A[2:]],
-            outputs_info=[start_M]
-        )
-
-        end_M = combined_probs[-1] + A[1]
-        return T.concatenate([
-            start_M.reshape((1, self.n_classes)),
-            combined_probs[:-1],
-            end_M.reshape((1, self.n_classes))])
-
     def fprop(self, data):
         tagger_out = self.tagger.fprop(data)
-        return self.combined_scores(tagger_out)
+        probs = T.concatenate([self.A, tagger_out])
+        return probs
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -108,9 +202,17 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         rval = Model.get_monitoring_channels(self, data)
-        rval['A_min'] = self.A.min()
-        rval['A_max'] = self.A.max()
-        rval['A_mean'] = self.A.mean()
+        rval['A_min'] = self.A[2:].min()
+        rval['A_max'] = self.A[2:].max()
+        rval['A_mean'] = self.A[2:].mean()
+        rval['start_min'] = self.A[0].min()
+        rval['start_max'] = self.A[0].max()
+        rval['start_mean'] = self.A[0].mean()
+        rval['end_min'] = self.A[1].min()
+        rval['end_max'] = self.A[1].max()
+        rval['end_mean'] = self.A[1].mean()
+        rval['tagger_min'] = self.tagger.layers[2].get_params()[0].min()
+        rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
         return rval
 
     def create_adjustors(self):
@@ -136,14 +238,13 @@ class SequenceTaggerNetwork(Model):
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
         #weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
-        l2_A = LpPenalty([self.A], 2)
-        cost = SumOfCosts(costs=[SeqTaggerCost(), l2_A])
+        #cost = SumOfCosts(costs=[SeqTaggerCost(), weightdecay])
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
-        algorithm = SGD(batch_size=1, learning_rate=1e-2,
+        algorithm = SGD(batch_size=1, learning_rate=1e-3,
                         termination_criterion=term,
                         monitoring_dataset=data['valid'],
-                        cost=cost,
+                        cost=SeqTaggerCost(),
                         learning_rule=self.momentum_rule,
                         update_callbacks=[self.learning_rate_adjustor],
                         )
@@ -193,13 +294,13 @@ def init_brown():
     fn = sys.argv[1]
     featurizer = Featurizer()
     c = TaggedCorpus(fn, featurizer)
-    d = WordTaggerDataset.create_from_tagged_corpus(c, window_size=6)
+    d = WordTaggerDataset.create_from_tagged_corpus(c)
     wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
                                window_size=d['train'].window_size,
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=30, hdim=60, dataset=d['train'])
+                               edim=10, hdim=20, dataset=d['train'])
     return c, d, wt
 
 
