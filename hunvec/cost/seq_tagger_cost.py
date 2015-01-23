@@ -65,11 +65,11 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
         o, u = theano.scan(fn=same, sequences=[out, targets],
                            outputs_info=None)
-        good = T.sum(o)
+        good = T.cast(T.sum(o), dtype='floatX')
         o, u = theano.scan(fn=notsame, sequences=[out, targets],
                            outputs_info=None)
-        bad = T.sum(o)
+        bad = T.cast(T.sum(o), dtype='floatX')
 
-        d['Prec'] = T.cast(good / (good + bad), dtype='floatX')
+        d['Prec'] = good / (good + bad)
 
         return d
