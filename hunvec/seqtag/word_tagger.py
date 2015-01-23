@@ -2,7 +2,7 @@ import sys
 
 import numpy
 
-from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Softmax, Linear
+from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Linear
 from pylearn2.space import CompositeSpace, IndexSpace
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
