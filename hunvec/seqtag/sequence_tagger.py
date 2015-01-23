@@ -44,7 +44,8 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         space.validate(data)
         seq_score, _, _, end = self.compute_costs(model, data, **kwargs)
         NF = T.max(end)
-        return -(seq_score - NF) + T.sum(T.sqr(abs(model.A)))
+        #return -(seq_score - NF) + T.sum(T.sqr(abs(model.A)))
+        return -(seq_score - NF)
 
     def compute_costs(self, model, data, **kwargs):
         inputs, targets = data
