@@ -15,6 +15,7 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
+from pylearn2.costs.cost import LpPenalty, SumOfCosts
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
@@ -74,14 +75,14 @@ class SequenceTaggerNetwork(Model):
         A_t_ = A.dimshuffle((1, 0))
         A_t = A_t_ + prev_res
 
-        #log_added = T.log(T.exp(A_t).sum(axis=1))
         log_added = A_t.max(axis=1)
 
         new_res = log_added + tagger_out
         return new_res
 
-    def combined_scores(self, A, tagger_out):
+    def combined_scores(self, tagger_out):
         # compute normalizer factor NF for this given training data
+        A = self.A
         start_M = tagger_out[0] + A[0]
         combined_probs, updates = theano.scan(
             fn=self.combine_A_tout_scanner,
@@ -98,7 +99,7 @@ class SequenceTaggerNetwork(Model):
 
     def fprop(self, data):
         tagger_out = self.tagger.fprop(data)
-        return self.combined_scores(self.A, tagger_out)
+        return self.combined_scores(tagger_out)
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -107,17 +108,9 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         rval = Model.get_monitoring_channels(self, data)
-        rval['A_min'] = self.A[2:].min()
-        rval['A_max'] = self.A[2:].max()
-        rval['A_mean'] = self.A[2:].mean()
-        rval['start_min'] = self.A[0].min()
-        rval['start_max'] = self.A[0].max()
-        rval['start_mean'] = self.A[0].mean()
-        rval['end_min'] = self.A[1].min()
-        rval['end_max'] = self.A[1].max()
-        rval['end_mean'] = self.A[1].mean()
-        rval['tagger_min'] = self.tagger.layers[2].get_params()[0].min()
-        rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
+        rval['A_min'] = self.A.min()
+        rval['A_max'] = self.A.max()
+        rval['A_mean'] = self.A.mean()
         return rval
 
     def create_adjustors(self):
@@ -143,13 +136,14 @@ class SequenceTaggerNetwork(Model):
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
         #weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
-        #cost = SumOfCosts(costs=[SeqTaggerCost(), weightdecay])
+        l2_A = LpPenalty([self.A], 2)
+        cost = SumOfCosts(costs=[SeqTaggerCost(), l2_A])
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
         algorithm = SGD(batch_size=1, learning_rate=1e-2,
                         termination_criterion=term,
                         monitoring_dataset=data['valid'],
-                        cost=SeqTaggerCost(),
+                        cost=cost,
                         learning_rule=self.momentum_rule,
                         update_callbacks=[self.learning_rate_adjustor],
                         )
@@ -205,7 +199,7 @@ def init_brown():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=10, hdim=20, dataset=d['train'])
+                               edim=30, hdim=60, dataset=d['train'])
     return c, d, wt
 
 
