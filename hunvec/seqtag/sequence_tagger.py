@@ -231,6 +231,7 @@ class SequenceTaggerNetwork(Model):
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
+        self.create_adjustors()
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
         cost_crit = MonitorBased(channel_name='Prec',
                                  prop_decrease=0., N=10)
