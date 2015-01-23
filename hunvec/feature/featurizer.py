@@ -23,9 +23,9 @@ class Featurizer(object):
     def __init__(self):
         self.feats = [
             case_feature,
-            lambda x: snf(x, 3, None),  # last three (included $)
-            lambda x: snf(x, 3, -1),  # "last but one" three
-            lambda x: snf(x, 3, -2),
+            #lambda x: snf(x, 3, None),  # last three (included $)
+            #lambda x: snf(x, 3, -1),  # "last but one" three
+            #lambda x: snf(x, 3, -2),
         ]
         self.feat_num = len(self.feats)
 
