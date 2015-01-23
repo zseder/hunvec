@@ -126,7 +126,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
             bad += 1
 
         same = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
-        notsame = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
+        notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
         o, u = theano.scan(fn=same, sequences=[combined, targets[1:-1]],
                            outputs_info=None)
         good += T.sum(o)
