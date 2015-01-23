@@ -51,8 +51,6 @@ class WordTaggerNetwork(MLP):
 
         h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
 
-        #output = Softmax(layer_name='softmax', binary_target_dim=1,
-        #                 n_classes=self.n_classes, irange=0.1)
         output = Linear(layer_name='tagger_out', irange=.1, dim=self.n_classes)
 
         return [input_, h0, output], input_space
