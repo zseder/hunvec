@@ -10,12 +10,12 @@ from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import sharedX
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
-from pylearn2.termination_criteria import EpochCounter
-from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
-#from pylearn2.devtools.nan_guard import NanGuardMode
+from pylearn2.training_algorithms import learning_rule
+from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
@@ -215,19 +215,37 @@ class SequenceTaggerNetwork(Model):
         rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
         return rval
 
+    def create_adjustors(self):
+        initial_momentum = .5
+        final_momentum = .99
+        start = 1
+        saturate = self.max_epochs
+        self.momentum_adjustor = learning_rule.MomentumAdjustor(
+            final_momentum, start, saturate)
+        self.momentum_rule = learning_rule.Momentum(initial_momentum,
+                                                    nesterov_momentum=True)
+
+        decay_factor = .1
+        self.learning_rate_adjustor = LinearDecay(
+            start, saturate * 100, decay_factor)
+
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
+        cost_crit = MonitorBased(channel_name=self.optimize_for,
+                                 prop_decrease=0., N=10)
+        term = And(criteria=[cost_crit, epoch_cnt_crit])
+
+        #weightdecay = WeightDecay(coeffs=[5e-5, 5e-5, 5e-5])
+        #cost = SumOfCosts(costs=[SeqTaggerCost(), weightdecay])
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
         algorithm = SGD(batch_size=1, learning_rate=1e-3,
-                        termination_criterion=epoch_cnt_crit,
-                        monitoring_dataset=data['train'],
-                        #monitoring_batch_size=1,
-                        #monitor_iteration_mode='sequential',
-                        #theano_function_mode=NanGuardMode(
-                        #    nan_is_error=True, inf_is_error=True),
+                        termination_criterion=term,
+                        monitoring_dataset=data['valid'],
                         cost=SeqTaggerCost(),
+                        learning_rule=self.momentum_rule,
+                        update_callbacks=[self.learning_rate_adjustor],
                         )
         self.trainer = Train(dataset=data['train'], model=self,
                              algorithm=algorithm, extensions=[self.mbsb])
@@ -281,7 +299,7 @@ def init_brown():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=10, hdim=20, dataset=d['train'])
+                               edim=50, hdim=200, dataset=d['train'])
     return c, d, wt
 
 
