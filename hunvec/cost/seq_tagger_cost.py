@@ -8,23 +8,36 @@ from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
     supervised = True
 
+    def __init__(self, regularization_costs=None):
+        super(SeqTaggerCost, self).__init__()
+        self.reg = regularization_costs
+
     def expr(self, model, data, **kwargs):
         ## compute score as Collobert did
         space, source = self.get_data_specs(model)
         space.validate(data)
-        seq_score, NF = self.compute_costs(model, data, **kwargs)
-        return -(seq_score - NF) + T.sum(T.sqr(abs(model.A)))
+        seq_score, _, _, end = self.compute_costs(model, data, **kwargs)
+        NF = T.max(end)
+        sc = -(seq_score - NF)
+        if self.reg is not None:
+            sc += model.tagger.get_weight_decay(self.reg[0])
+            sc += self.reg[1] * T.sum(T.sqr(abs(model.A)))
+        return sc
 
     def compute_costs(self, model, data, **kwargs):
         inputs, targets = data
-        tagger_out = model.fprop(inputs)
+        outputs = model.fprop(inputs)
 
-        start = model.A[0]
-        end = model.A[1]
-        A = model.A[2:]
+        # unpack A and tagger_out from outputs
+        start = outputs[0]
+        end = outputs[1]
+        A = outputs[2:2 + model.n_classes]
+        tagger_out = outputs[2 + model.n_classes:]
 
         seq_score = self.cost_seq(start, end, A, tagger_out, targets)
-        return seq_score, T.max(tagger_out[-1])
+        start_M, combined, end_M = self.combined_scores(
+            start, end, A, tagger_out)
+        return seq_score, start_M, combined, end_M
 
     def cost_seq(self, start, end, A, tagger_out, targets):
         # compute gold seq's score with using A and tagger_out
@@ -51,25 +64,60 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
         return seq_score
 
+    def combine_A_tout_scanner(self, tagger_out, prev_res, A):
+        # create a new matrix from A, add prev_res to every column
+        A_t_ = A.dimshuffle((1, 0))
+        A_t = A_t_ + prev_res
+
+        #log_added = T.log(T.exp(A_t).sum(axis=1))
+        log_added = A_t.max(axis=1)
+
+        new_res = log_added + tagger_out
+        return new_res
+
+    def combined_scores(self, start, end, A, tagger_out):
+        # compute normalizer factor NF for this given training data
+        start_M = tagger_out[0] + start
+        combined_probs, updates = theano.scan(
+            fn=self.combine_A_tout_scanner,
+            sequences=[tagger_out[1:]],
+            non_sequences=[A],
+            outputs_info=[start_M]
+        )
+
+        end_M = combined_probs[-1] + end
+        return start_M, combined_probs[:-1], end_M
+
     @functools.wraps(Cost.get_monitoring_channels)
     def get_monitoring_channels(self, model, data, **kwargs):
         d = Cost.get_monitoring_channels(self, model, data, **kwargs)
         costs = self.compute_costs(model, data, **kwargs)
         d['cost_seq_score'] = -costs[0]
-        d['NF'] = -costs[1]
+        d['NF'] = -T.max(costs[3])
 
-        inputs, targets = data
-        out = model.fprop(inputs)
+        start, combined, end = costs[1:]
+        _, targets = data
+        good, bad = 0., 0.
+        if T.eq(T.argmax(start), T.argmax(targets[0])).sum() == 1:
+            good += 1
+        else:
+            bad += 1
 
         same = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
         notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
-        o, u = theano.scan(fn=same, sequences=[out, targets],
+        o, u = theano.scan(fn=same, sequences=[combined, targets[1:-1]],
                            outputs_info=None)
-        good = T.cast(T.sum(o), dtype='floatX')
-        o, u = theano.scan(fn=notsame, sequences=[out, targets],
+        good += T.sum(o)
+        o, u = theano.scan(fn=notsame, sequences=[combined, targets[1:-1]],
                            outputs_info=None)
-        bad = T.cast(T.sum(o), dtype='floatX')
+        bad += T.sum(o)
 
-        d['Prec'] = good / (good + bad)
+        if T.eq(T.argmax(end), T.argmax(targets[-1])).sum() == 1:
+            good += 1
+        else:
+            bad += 1
+
+        d['Prec'] = T.cast(good / (good + bad), dtype='floatX')
 
         return d
+
