@@ -121,15 +121,27 @@ class SequenceTaggerNetwork(Model):
         cost = SeqTaggerCost(coeffs)
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
-        algorithm = SGD(batch_size=1, learning_rate=1e-2,
-                        termination_criterion=term,
-                        monitoring_dataset=data['valid'],
-                        cost=cost,
-                        learning_rule=self.momentum_rule,
-                        update_callbacks=[self.learning_rate_adjustor],
-                        )
+        self.algorithm = SGD(batch_size=1, learning_rate=1e-2,
+                             termination_criterion=term,
+                             monitoring_dataset=data['valid'],
+                             cost=cost,
+                             learning_rule=self.momentum_rule,
+                             update_callbacks=[self.learning_rate_adjustor],
+                             )
         self.trainer = Train(dataset=data['train'], model=self,
-                             algorithm=algorithm, extensions=[self.mbsb])
+                             algorithm=self.algorithm)
+        self.algorithm.setup(self, self.dataset['train'])
+
+    def train(self):
+        while True:
+            self.algorithm.train(dataset=self.dataset['train'])
+            self.monitor.report_epoch()
+            self.monitor()
+            self.mbsb.on_monitor(self, self.dataset['valid'], self.algorithm)
+            if not self.algorithm.continue_learning(self):
+                break
+            self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
+                                              self.algorithm)
 
 
 def test_data():
@@ -167,7 +179,6 @@ def test():
     data, params = test_data()
     st = SequenceTaggerNetwork(**params)
     st.create_algorithm(data)
-    st.trainer.main_loop()
 
 
 def init_brown():
@@ -187,7 +198,7 @@ def init_brown():
 def train_brown_pos():
     c, d, wt = init_brown()
     wt.create_algorithm(d, sys.argv[2])
-    wt.trainer.main_loop()
+    wt.train()
 
 
 def load_and_predict():
