@@ -45,19 +45,21 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
 
         # tagger_out_scores
-        tout_chooser = lambda gold_index, i: tagger_out[i][gold_index]
+        tout_chooser = lambda gold_i, i, tagger_out: tagger_out[i][gold_i]
         tout_seq_scores, updates = theano.scan(
             fn=tout_chooser,
             sequences=[gold_seq, T.arange(gold_seq.shape[0])],
+            non_sequences=[tagger_out],
             outputs_info=None
         )
         seq_score += tout_seq_scores.sum()
 
         # A matrix scores
-        A_chooser = lambda i, next_i: A[i][next_i]
+        A_chooser = lambda i, next_i, A: A[i][next_i]
         A_seq_scores, updates = theano.scan(
             fn=A_chooser,
             sequences=[gold_seq[:-1], gold_seq[1:]],
+            non_sequences=[A],
             outputs_info=None
         )
         seq_score += A_seq_scores.sum()
