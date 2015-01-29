@@ -99,11 +99,8 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
         start, combined, end = costs[1:]
         _, targets = data
-        good, bad = 0., 0.
-        if T.eq(T.argmax(start), T.argmax(targets[0])).sum() == 1:
-            good += 1
-        else:
-            bad += 1
+        good = T.sum(T.eq(T.argmax(start), T.argmax(targets[0])))
+        bad = 1 - T.sum(T.eq(T.argmax(start), T.argmax(targets[0])))
 
         same = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
         notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
@@ -114,12 +111,9 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
                            outputs_info=None)
         bad += T.sum(o)
 
-        if T.eq(T.argmax(end), T.argmax(targets[-1])).sum() == 1:
-            good += 1
-        else:
-            bad += 1
-
-        d['Prec'] = T.cast(good / (good + bad), dtype='floatX')
+        good += T.sum(T.eq(T.argmax(end), T.argmax(targets[-1])))
+        bad += 1 - T.sum(T.eq(T.argmax(end), T.argmax(targets[-1])))
+        d['Prec'] = T.cast(T.cast(good, dtype='floatX')
+                           / (good + bad), dtype='floatX')
 
         return d
-

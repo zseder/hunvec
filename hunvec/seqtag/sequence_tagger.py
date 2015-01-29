@@ -98,7 +98,7 @@ class SequenceTaggerNetwork(Model):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = self.max_epochs
+        saturate = self.max_epochs / 5
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum,
@@ -106,7 +106,7 @@ class SequenceTaggerNetwork(Model):
 
         decay_factor = .01
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 1000, decay_factor)
+            start, saturate * 50000, decay_factor)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
@@ -121,7 +121,7 @@ class SequenceTaggerNetwork(Model):
         cost = SeqTaggerCost(coeffs)
         self.mbsb = MonitorBasedSaveBest(channel_name='objective',
                                          save_path=save_best_path)
-        self.algorithm = SGD(batch_size=1, learning_rate=1e-2,
+        self.algorithm = SGD(batch_size=1, learning_rate=1e-3,
                              termination_criterion=term,
                              monitoring_dataset=data['valid'],
                              cost=cost,
@@ -191,7 +191,7 @@ def init_brown():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=50, hdim=100, dataset=d['train'])
+                               edim=100, hdim=200, dataset=d['train'])
     return c, d, wt
 
 
