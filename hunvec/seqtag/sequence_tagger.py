@@ -217,8 +217,10 @@ def init_eng_ner():
     ws = 6
     featurizer = Featurizer()
     train_c = TaggedCorpus(train_fn, featurizer)
-    valid_c = TaggedCorpus(valid_fn, featurizer)
-    test_c = TaggedCorpus(test_fn, featurizer)
+    valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
+                           t2i=train_c.t2i)
+    test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
+                          t2i=valid_c.t2i)
     train_res = WordTaggerDataset.create_from_tagged_corpus(
         train_c, window_size=ws)
     valid_res = WordTaggerDataset.create_from_tagged_corpus(
