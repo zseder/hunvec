@@ -90,6 +90,18 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         end_M = combined_probs[-1] + end
         return start_M, combined_probs[:-1], end_M
 
+    def per_word_precision(self, gold, out):
+        same = lambda out, gold: T.sum(T.eq(T.argmax(out), T.argmax(gold)))
+        notsame = lambda out, gold: T.sum(T.neq(T.argmax(out), T.argmax(gold)))
+        o, u = theano.scan(fn=same, sequences=[out, gold],
+                           outputs_info=None)
+        good = T.sum(o)
+        o, u = theano.scan(fn=notsame, sequences=[out, gold],
+                           outputs_info=None)
+        bad = T.sum(o)
+        return T.cast(T.cast(good, dtype='floatX')
+                      / (good + bad), dtype='floatX')
+
     @functools.wraps(Cost.get_monitoring_channels)
     def get_monitoring_channels(self, model, data, **kwargs):
         d = Cost.get_monitoring_channels(self, model, data, **kwargs)
@@ -98,22 +110,9 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         d['NF'] = -T.max(costs[3])
 
         start, combined, end = costs[1:]
+        tagged = T.concatenate([start, combined, end])
         _, targets = data
-        good = T.sum(T.eq(T.argmax(start), T.argmax(targets[0])))
-        bad = 1 - T.sum(T.eq(T.argmax(start), T.argmax(targets[0])))
 
-        same = lambda c, t: T.sum(T.eq(T.argmax(c), T.argmax(t)))
-        notsame = lambda c, t: T.sum(T.neq(T.argmax(c), T.argmax(t)))
-        o, u = theano.scan(fn=same, sequences=[combined, targets[1:-1]],
-                           outputs_info=None)
-        good += T.sum(o)
-        o, u = theano.scan(fn=notsame, sequences=[combined, targets[1:-1]],
-                           outputs_info=None)
-        bad += T.sum(o)
-
-        good += T.sum(T.eq(T.argmax(end), T.argmax(targets[-1])))
-        bad += 1 - T.sum(T.eq(T.argmax(end), T.argmax(targets[-1])))
-        d['Prec'] = T.cast(T.cast(good, dtype='floatX')
-                           / (good + bad), dtype='floatX')
+        d['Prec'] = self.per_word_precision(targets, tagged)
 
         return d
