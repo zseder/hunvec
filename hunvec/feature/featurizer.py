@@ -23,9 +23,9 @@ class Featurizer(object):
     def __init__(self):
         self.feats = [
             case_feature,
-            #lambda x: snf(x, 3, None),  # last three (included $)
-            #lambda x: snf(x, 3, -1),  # "last but one" three
-            #lambda x: snf(x, 3, -2),
+            lambda x: snf(x, 3, None),  # last three (included $)
+            lambda x: snf(x, 3, -1),  # "last but one" three
+            lambda x: snf(x, 3, -2),
         ]
         self.feat_num = len(self.feats)
 
@@ -33,6 +33,10 @@ class Featurizer(object):
         """ reads the whole corpus to preprocess features for detecting
         feature numbers. For example how many starting trigrams or ending
         trigrams there are"""
+        if hasattr(self, 'kept'):
+            # using featurizer that was already used (train/test/valid)
+            return
+
         feature_counters = [defaultdict(int) for _ in self.feats]
         for sentence in corpus:
             for word, _ in sentence:
