@@ -74,7 +74,10 @@ class WordTaggerDataset(Dataset):
                  rng=None, data_specs=None, return_tuple=False):
 
         if num_batches is None:
-            num_batches = len(self.X1) / (batch_size * 10)
+            if 'shuffle' in mode:
+                num_batches = len(self.X1) / (batch_size * 10)
+            else:
+                num_batches = len(self.X1) / batch_size
 
         mode = resolve_iterator_class(mode)
         if data_specs is None:
@@ -144,9 +147,4 @@ class WordTaggerDataset(Dataset):
                 y_[-1][row_i][v] = 1
         y = y_
 
-        return create_splitted_datasets(words, features, y, ratios,
-                                        vocab_size=len(vocab),
-                                        window_size=window_size,
-                                        total_feats=c.featurizer.total,
-                                        feat_num=c.featurizer.feat_num,
-                                        n_classes=len(classes))
+        return words, features, y, vocab, classes
