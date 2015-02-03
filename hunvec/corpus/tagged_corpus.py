@@ -1,10 +1,14 @@
 class TaggedCorpus(object):
-    def __init__(self, fn, featurizer=None):
+    def __init__(self, fn, featurizer=None, w2i=None, t2i=None):
         self.fn = fn
         self.featurizer = featurizer
         self.read()
         if featurizer is not None:
             self.add_features()
+
+        self.w2i = w2i
+        self.t2i = t2i
+
         self.turn_to_ints()
 
     def add_features(self):
@@ -31,8 +35,8 @@ class TaggedCorpus(object):
         self.corpus = d
 
     def turn_to_ints(self):
-        w2i = {}
-        t2i = {}
+        w2i = ({} if self.w2i is None else self.w2i)
+        t2i = ({} if self.t2i is None else self.t2i)
         for sen_i in xrange(len(self.corpus)):
             sen = self.corpus[sen_i]
             for i in xrange(len(sen)):
