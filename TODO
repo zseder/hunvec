@@ -1,9 +1,16 @@
 ## seq tagger
 
-### fixed number of feature problem
+###
+
+- optparse to be able to train/tag ner/pos
+- save corpus output, not only model in order to have the same tag and word
+  indices
+- tag in a way that can be used for
+  - writing into a file (to eval with conlleval)
+  - somehow create monitor channel that will monitor F1 score
 
 ### Refactor
-#
+
 - SequenceDataSpace would be better? Would it let us create >1 batch sizes?
 - training is clear, tagging is difficult, because it needs cost function
 - WordTaggerDataset.create_from_tagged_corpus is quite complex
