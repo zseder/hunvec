@@ -8,6 +8,13 @@
 - tag in a way that can be used for
   - writing into a file (to eval with conlleval)
   - somehow create monitor channel that will monitor F1 score
+    - input1: list_of_tags. l[0] == 0th_tag, "B-PER"
+    - input2: gold data, numpy 2d-array where rows are for words in a sentence,
+              columns are tag indices (shape: (len_sen, len(list_of_tags))),
+              containing only one "1", the others are "0"s. E.g. one-hot
+    - input3: same shaped numpy array with floats that represent likelihood
+    - compute F1 score
+    - make the same code work in theano with scan
 
 ### Refactor
 
