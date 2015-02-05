@@ -110,7 +110,9 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         d['NF'] = -T.max(costs[3])
 
         start, combined, end = costs[1:]
-        tagged = T.concatenate([start, combined, end])
+        tagged = T.concatenate([start.reshape((1, model.n_classes)),
+                                combined,
+                                end.reshape((1, model.n_classes))])
         _, targets = data
 
         d['Prec'] = self.per_word_precision(targets, tagged)
