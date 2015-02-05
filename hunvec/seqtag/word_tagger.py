@@ -1,4 +1,5 @@
 import sys
+from math import sqrt
 
 import numpy
 
@@ -49,9 +50,13 @@ class WordTaggerNetwork(MLP):
             inputs_to_layers={0: [0], 1: [1]}
         )
 
-        h0 = Tanh(layer_name='h0', dim=self.hdim, irange=.1)
+        # for parameter settings, see Remark 7 (Tricks) in NLP from scratch
+        h0 = Tanh(layer_name='h0', dim=self.hdim, istdev=1./sqrt(self.hdim),
+                  W_lr_scale=1./self.hdim)
 
-        output = Linear(layer_name='tagger_out', irange=.1, dim=self.n_classes)
+        output = Linear(layer_name='tagger_out',
+                        istdev=1. / sqrt(self.n_classes),
+                        dim=self.n_classes, W_lr_scale=1./self.n_classes)
 
         return [input_, h0, output], input_space
 
