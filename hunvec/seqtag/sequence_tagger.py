@@ -75,6 +75,11 @@ class SequenceTaggerNetwork(Model):
         probs = T.concatenate([self.A, tagger_out])
         return probs
 
+    @functools.wraps(Model.get_lr_scalers)
+    def get_lr_scalers(self):
+        d = self.tagger.get_lr_scalers()
+        return d
+
     @functools.wraps(Model.get_params)
     def get_params(self):
         return self.tagger.get_params() + [self.A]
@@ -119,16 +124,16 @@ class SequenceTaggerNetwork(Model):
 
         #(layers, A_weight_decay)
         coeffs = ([[5e-4, 5e-4], 5e-4, 5e-4], 5e-4)
-        #coeffs = None
+        coeffs = None
         cost = SeqTaggerCost(coeffs)
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
-        self.algorithm = SGD(batch_size=1, learning_rate=0.015,
+        self.algorithm = SGD(batch_size=1, learning_rate=0.01,
                              termination_criterion=epoch_cnt_crit,
                              monitoring_dataset=data,
                              cost=cost,
-                             learning_rule=self.momentum_rule,
-                             update_callbacks=[self.learning_rate_adjustor],
+                             #learning_rule=self.momentum_rule,
+                             #update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
                              algorithm=self.algorithm)
@@ -142,8 +147,8 @@ class SequenceTaggerNetwork(Model):
             self.mbsb.on_monitor(self, self.dataset['valid'], self.algorithm)
             if not self.algorithm.continue_learning(self):
                 break
-            self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
-                                              self.algorithm)
+            #self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
+            #                                  self.algorithm)
 
 
 def test_data():
@@ -199,7 +204,7 @@ def init_brown():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=50, hdim=300, dataset=d['train'],
+                               edim=50, hdim=200, dataset=d['train'],
                                max_epochs=300)
     return c, d, wt
 
@@ -296,6 +301,6 @@ def predict_test():
 
 if __name__ == "__main__":
     #predict_test()
-    #train_brown_pos()
+    train_brown_pos()
     #load_and_predict()
-    train_ner()
+    #train_ner()
