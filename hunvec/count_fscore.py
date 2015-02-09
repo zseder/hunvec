@@ -3,10 +3,10 @@ import numpy
 class FScCounter:
 
     def __init__(self, labels):
-        
+
         self.get_mappings(labels)
         self.init_confusion_matrix() 
-    
+
     def get_mappings(self, labels):
 
         self.lab2ind = dict([(t, i) for i, t in enumerate(labels)])
@@ -35,7 +35,7 @@ class FScCounter:
                     if categ not in self.phrase_indeces:
                         self.phrase_indeces[categ] = {}
                     self.phrase_indeces[categ][part] = self.lab2ind[label]
-    
+
     def init_confusion_matrix(self):
         
         self.confusion_matrix = {}
@@ -44,7 +44,7 @@ class FScCounter:
             self.confusion_matrix[k]['tp'] = float(0)
             self.confusion_matrix[k]['fp'] = float(0)
             self.confusion_matrix[k]['fn'] = float(0)
-    
+
     def calculate_f(self):
 
         for k in self.confusion_matrix:
@@ -59,11 +59,13 @@ class FScCounter:
                 recall = tp/(tp + fn)    
             else:    
                 recall = 'N/A'
-            if not(precision == 'N/A' or recall == 'N/A'):
-                f_score = 2*precision*recall/(precision + recall)
-            else:
+            if precision == 0 and recall == 0:
+                f_score = 0
+            elif precision == 'N/A' or recall == 'N/A':
                 f_score = 'N/A'
-            yield (k, precision, recall, f_score)    
+            else:
+                f_score = 2*precision*recall/(precision + recall)
+            yield (k, precision, recall, f_score)
 
 
     def generate_phrases(self, sen):
@@ -85,32 +87,32 @@ class FScCounter:
                 else:
                     in_phrase = True
                     ph_i = i
-                continue                 
+                continue
             if in_phrase:
                 if ind == self.phrase_indeces[categ]['E']:
                     in_phrase = False
                     yield (categ, ph_i, i)
                 elif ind != self.phrase_indeces[categ]['I']:
                     in_phrase = False
-                
-    
+
+
     def count_score(self, gold, input_):
 
         for i, sen in enumerate(gold):
             self.process_sen(sen, input_[i])
             for sc in self.calculate_f():
                 yield sc
-    
-    
+
+
     def process_sen(self, gold_sen, input_sen):
 
         gold_phrases = set([gp for gp in self.generate_phrases(gold_sen)])
         input_phrases = set([gp for gp in self.generate_phrases(input_sen)])
-        self.update_scores(gold_phrases, input_phrases) 
-    
-    
+        self.update_scores(gold_phrases, input_phrases)
+
+
     def update_scores(self, gold_phrases, input_phrases):
-        
+
         for ph in gold_phrases.intersection(input_phrases):
             categ = ph[0]
             self.confusion_matrix[categ]['tp'] += 1
