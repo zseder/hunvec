@@ -1,6 +1,5 @@
 #import logging
 import sys
-from random import shuffle
 import cPickle
 
 import numpy
@@ -10,6 +9,7 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrixPyTables
 from pylearn2.space import IndexSpace, CompositeSpace
 
 from hunvec.utils.binary_tree import BinaryTreeEncoder
+from hunvec.utils.data_splitter import datasplit
 
 
 def create_hdf5_file(fn, X_shape, y_shape, num_labels):
@@ -150,25 +150,9 @@ class Corpus(object):
             t = (numpy.int8 if self.hs else numpy.int32)
             y = numpy.array(examples[1], dtype=t)
             X = numpy.array(examples[0])
-            total = len(y)
-            indices = range(total)
-            shuffle(indices)
-            training = bsizes[0]
-            test = bsizes[1]
-            valid = bsizes[2]
-            if total < batch:
-                training = int(total * ratios[0])
-                valid = int(total * ratios[2])
-            training_indices = indices[:training]
-            valid_indices = indices[training:training + valid]
-            test_indices = indices[training+valid:training+valid+test]
 
-            train_X = X[training_indices, :]
-            train_y = y[training_indices]
-            test_X = X[test_indices, :]
-            test_y = y[test_indices]
-            valid_X = X[valid_indices, :]
-            valid_y = y[valid_indices]
+            train_X, test_X, valid_X = datasplit(X, ratios)
+            train_y, test_y, valid_y = datasplit(y, ratios)
 
             tr_start = bc * bsizes[0]
             tst_start = bc * bsizes[1]
@@ -210,7 +194,7 @@ class Corpus(object):
 
 def main():
     c = Corpus(corpus_fn=sys.argv[1], dump_path=sys.argv[2],
-               window_size=5, top_n=20000, hs=False, future=False)
+               window_size=5, top_n=50000, hs=False, future=True)
     c.create_dump_files()
 
 if __name__ == "__main__":

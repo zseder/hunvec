@@ -1,5 +1,23 @@
-- not to read whole corpus: done. TODO: read the file again, until there is no batch which gives any improvement. For this, there should be another validation set?
-- save HS y into log|V| sized vector instead of |V|, store only the decision nodes with +- values
-- save huffman tree into file and change the prediction according to it
-  - create a predictor that takes a language model, accepts word ngrams from stdin, and gives words as next word
-- create ppl cost into HierarchicalSoftmax
+## seq tagger
+
+###
+
+- optparse to be able to train/tag ner/pos
+- save corpus output, not only model in order to have the same tag and word
+  indices
+- tag in a way that can be used for
+  - writing into a file (to eval with conlleval)
+  - somehow create monitor channel that will monitor F1 score
+    - input1: list_of_tags. l[0] == 0th_tag, "B-PER"
+    - input2: gold data, numpy 2d-array where rows are for words in a sentence,
+              columns are tag indices (shape: (len_sen, len(list_of_tags))),
+              containing only one "1", the others are "0"s. E.g. one-hot
+    - input3: same shaped numpy array with floats that represent likelihood
+    - compute F1 score
+    - make the same code work in theano with scan
+
+### Refactor
+
+- SequenceDataSpace would be better? Would it let us create >1 batch sizes?
+- training is clear, tagging is difficult, because it needs cost function
+- WordTaggerDataset.create_from_tagged_corpus is quite complex

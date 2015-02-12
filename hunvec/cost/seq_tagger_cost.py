@@ -1,0 +1,120 @@
+import functools
+
+import theano
+import theano.tensor as T
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
+
+
+class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
+    supervised = True
+
+    def __init__(self, regularization_costs=None):
+        super(SeqTaggerCost, self).__init__()
+        self.reg = regularization_costs
+
+    def expr(self, model, data, **kwargs):
+        ## compute score as Collobert did
+        space, source = self.get_data_specs(model)
+        space.validate(data)
+        seq_score, _, _, end = self.compute_costs(model, data, **kwargs)
+        NF = T.max(end)
+        sc = -(seq_score - NF)
+        if self.reg is not None:
+            sc += model.tagger.get_weight_decay(self.reg[0])
+            sc += self.reg[1] * T.sum(T.sqr(abs(model.A)))
+        return sc
+
+    def compute_costs(self, model, data, **kwargs):
+        inputs, targets = data
+        outputs = model.fprop(inputs)
+
+        # unpack A and tagger_out from outputs
+        start = outputs[0]
+        end = outputs[1]
+        A = outputs[2:2 + model.n_classes]
+        tagger_out = outputs[2 + model.n_classes:]
+
+        seq_score = self.cost_seq(start, end, A, tagger_out, targets)
+        start_M, combined, end_M = self.combined_scores(
+            start, end, A, tagger_out)
+        return seq_score, start_M, combined, end_M
+
+    def cost_seq(self, start, end, A, tagger_out, targets):
+        # compute gold seq's score with using A and tagger_out
+        gold_seq = targets.argmax(axis=1)
+        seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
+
+        # tagger_out_scores
+        tout_chooser = lambda gold_i, i, tagger_out: tagger_out[i][gold_i]
+        tout_seq_scores, updates = theano.scan(
+            fn=tout_chooser,
+            sequences=[gold_seq, T.arange(gold_seq.shape[0])],
+            non_sequences=[tagger_out],
+            outputs_info=None
+        )
+        seq_score += tout_seq_scores.sum()
+
+        # A matrix scores
+        A_chooser = lambda i, next_i, A: A[i][next_i]
+        A_seq_scores, updates = theano.scan(
+            fn=A_chooser,
+            sequences=[gold_seq[:-1], gold_seq[1:]],
+            non_sequences=[A],
+            outputs_info=None
+        )
+        seq_score += A_seq_scores.sum()
+
+        return seq_score
+
+    def combine_A_tout_scanner(self, tagger_out, prev_res, A):
+        # create a new matrix from A, add prev_res to every column
+        A_t_ = A.dimshuffle((1, 0))
+        A_t = A_t_ + prev_res
+
+        #log_added = T.log(T.exp(A_t).sum(axis=1))
+        log_added = A_t.max(axis=1)
+
+        new_res = log_added + tagger_out
+        return new_res
+
+    def combined_scores(self, start, end, A, tagger_out):
+        # compute normalizer factor NF for this given training data
+        start_M = tagger_out[0] + start
+        combined_probs, updates = theano.scan(
+            fn=self.combine_A_tout_scanner,
+            sequences=[tagger_out[1:]],
+            non_sequences=[A],
+            outputs_info=[start_M]
+        )
+
+        end_M = combined_probs[-1] + end
+        return start_M, combined_probs[:-1], end_M
+
+    def per_word_precision(self, gold, out):
+        same = lambda out, gold: T.sum(T.eq(T.argmax(out), T.argmax(gold)))
+        notsame = lambda out, gold: T.sum(T.neq(T.argmax(out), T.argmax(gold)))
+        o, u = theano.scan(fn=same, sequences=[out, gold],
+                           outputs_info=None)
+        good = T.sum(o)
+        o, u = theano.scan(fn=notsame, sequences=[out, gold],
+                           outputs_info=None)
+        bad = T.sum(o)
+        return T.cast(T.cast(good, dtype='floatX')
+                      / (good + bad), dtype='floatX')
+
+    @functools.wraps(Cost.get_monitoring_channels)
+    def get_monitoring_channels(self, model, data, **kwargs):
+        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
+        costs = self.compute_costs(model, data, **kwargs)
+        d['cost_seq_score'] = -costs[0]
+        d['NF'] = -T.max(costs[3])
+
+        start, combined, end = costs[1:]
+        tagged = T.concatenate([start.reshape((1, model.n_classes)),
+                                combined,
+                                end.reshape((1, model.n_classes))])
+        _, targets = data
+
+        d['Prec'] = self.per_word_precision(targets, tagged)
+
+        return d
