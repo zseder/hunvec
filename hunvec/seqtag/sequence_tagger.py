@@ -22,6 +22,7 @@ from hunvec.seqtag.word_tagger_dataset import create_splitted_datasets
 from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.feature.featurizer import Featurizer
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
+from hunvec.utils import viterbi
 
 
 class SequenceTaggerNetwork(Model):
@@ -104,7 +105,7 @@ class SequenceTaggerNetwork(Model):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = self.max_epochs
+        saturate = self.max_epochs / 3
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum,
@@ -112,7 +113,7 @@ class SequenceTaggerNetwork(Model):
 
         decay_factor = .1
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 1000, decay_factor)
+            start, saturate * 10000, decay_factor)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
@@ -123,17 +124,17 @@ class SequenceTaggerNetwork(Model):
         term = And(criteria=[cost_crit, epoch_cnt_crit])
 
         #(layers, A_weight_decay)
-        coeffs = ([[5e-4, 5e-4], 5e-4, 5e-4], 5e-4)
-        coeffs = None
+        coeffs = ([[1e-4, 1e-4], 1e-4, 1e-4], 1e-4)
+        #coeffs = None
         cost = SeqTaggerCost(coeffs)
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
-        self.algorithm = SGD(batch_size=1, learning_rate=0.01,
+        self.algorithm = SGD(batch_size=1, learning_rate=0.05,
                              termination_criterion=epoch_cnt_crit,
                              monitoring_dataset=data,
                              cost=cost,
-                             #learning_rule=self.momentum_rule,
-                             #update_callbacks=[self.learning_rate_adjustor],
+                             learning_rule=self.momentum_rule,
+                             update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
                              algorithm=self.algorithm)
@@ -147,45 +148,23 @@ class SequenceTaggerNetwork(Model):
             self.mbsb.on_monitor(self, self.dataset['valid'], self.algorithm)
             if not self.algorithm.continue_learning(self):
                 break
-            #self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
-            #                                  self.algorithm)
+            self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
+                                              self.algorithm)
 
+    def prepare_tagging(self):
+        X = self.get_input_space().make_theano_batch()
+        Y = self.fprop(X)
+        self.f = theano.function([X[0], X[1]], Y)
 
-def test_data():
-    params = {
-        "vocab_size": 10,
-        "window_size": 3,
-        "feat_num": 2,
-        "hdim": 10,
-        "edim": 10,
-        "n_classes": 2
-    }
-
-    # two sentences, with 2 and 3 lengths
-    X = ([
-         [[0, 1, 2], [3, 5, 4]],
-         [[0, 1, 2], [3, 5, 4], [5, 4, 0]]
-         ],
-         [
-             [[0, 1, 0], [1, 1, 1]],
-             [[0, 1, 0], [1, 1, 1], [1, 0, 1]]
-         ])
-    y = [
-        [[0, 0]],
-        [[0, 1, 1]]
-    ]
-    d = WordTaggerDataset(X, y,
-                          vocab_size=params['vocab_size'],
-                          window_size=params['window_size'],
-                          feat_num=params['feat_num'],
-                          n_classes=params['n_classes'])
-    return d, params
-
-
-def test():
-    data, params = test_data()
-    st = SequenceTaggerNetwork(**params)
-    st.create_algorithm(data)
+    def tag_seq(self, words, features):
+        start = self.A.get_value()[0]
+        end = self.A.get_value()[1]
+        A = self.A.get_value()[2:]
+        for i in xrange(len(words)):
+            y = self.f(words[i], features[i])
+            tagger_out = y[2 + self.n_classes:]
+            _, best_path = viterbi.viterbi(start, A, end, tagger_out, self.n_classes)
+            yield best_path
 
 
 def init_brown():
@@ -204,14 +183,16 @@ def init_brown():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=50, hdim=200, dataset=d['train'],
+                               edim=50, hdim=300, dataset=d['train'],
                                max_epochs=300)
     return c, d, wt
 
 
 def train_brown_pos():
-    c, d, wt = init_brown()
-    wt.create_algorithm(d, sys.argv[2])
+    #c, d, wt = init_brown()
+    #wt.create_algorithm(d, sys.argv[2])
+    d, wt = init_eng_ner()
+    wt.create_algorithm(d, sys.argv[4])
     wt.train()
 
 
@@ -253,7 +234,7 @@ def init_eng_ner():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=50, hdim=100, dataset=d['train'],
+                               edim=20, hdim=50, dataset=d['train'],
                                max_epochs=300)
     return d, wt
 
@@ -265,42 +246,19 @@ def train_ner():
 
 
 def load_and_predict():
-    c, d, _ = init_brown()
-    wt = serial.load(sys.argv[2])
-    print d['train'].y[0].argmax(axis=1)
-    cost = SeqTaggerCost()
-    words = T.matrix('words', dtype='int64')
-    features = T.matrix('features', dtype='int64')
-    targets = T.matrix('targets', dtype='float32')
-    cost_expression = cost.compute_costs(wt, ((words, features), targets))
-    fn = theano.function(inputs=[words, features, targets],
-                         outputs=cost_expression)
-    res = fn(d['train'].X1[0], d['train'].X2[0], d['train'].y[0])
-    print res[1].argmax(), res[2].argmax(axis=1), res[3].argmax()
-
-
-def predict_test():
-    c, d, wt = init_brown()
-    #print d['train'].y[0]
-    #X = wt.get_input_space().make_theano_batch()
-    #Y = wt.fprop(X)
-    #f = theano.function([X[0], X[1]], Y)
-    #y = f(d['train'].X1[0], d['train'].X2[0])
-    #print y, y.shape
-    #print (d['train'].y[0] * y).sum()
-    #print len(d['train'].y[0])
-    cost = SeqTaggerCost()
-    words = T.matrix('words', dtype='int64')
-    features = T.matrix('features', dtype='int64')
-    targets = T.matrix('targets', dtype='float32')
-    cost_expression = cost.expr(wt, ((words, features), targets))
-    fn = theano.function(inputs=[words, features, targets],
-                         outputs=cost_expression)
-    print fn(d['train'].X1[0], d['train'].X2[0], d['train'].y[0])
+    d, _ = init_eng_ner()
+    d = d['train']
+    wt = serial.load(sys.argv[4])
+    print d.y[0].argmax(axis=1)
+    #words = T.matrix('words', dtype='int64')
+    #features = T.matrix('features', dtype='int64')
+    #targets = T.matrix('targets', dtype='float32')
+    wt.prepare_tagging()
+    print list(wt.tag_seq(d.X1[:1], d.X2[:1]))
 
 
 if __name__ == "__main__":
     #predict_test()
-    train_brown_pos()
-    #load_and_predict()
+    #train_brown_pos()
+    load_and_predict()
     #train_ner()
