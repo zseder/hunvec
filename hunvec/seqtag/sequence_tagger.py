@@ -216,7 +216,6 @@ def init_eng_ner():
     words, feats, y, _, _ = train_res
     n_words = len(train_res[3] | test_res[3] | valid_res[3])
     n_classes = len(train_res[4] | test_res[4] | valid_res[4])
-    print n_words, n_classes
     train_ds = WordTaggerDataset((words, feats), y, n_words, ws,
                                  featurizer.total, featurizer.feat_num,
                                  n_classes)
