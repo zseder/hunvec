@@ -1,5 +1,3 @@
-import functools
-
 import theano
 import theano.tensor as T
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
@@ -90,31 +88,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         end_M = combined_probs[-1] + end
         return start_M, combined_probs[:-1], end_M
 
-    def per_word_precision(self, gold, out):
-        same = lambda out, gold: T.sum(T.eq(T.argmax(out), T.argmax(gold)))
-        notsame = lambda out, gold: T.sum(T.neq(T.argmax(out), T.argmax(gold)))
-        o, u = theano.scan(fn=same, sequences=[out, gold],
-                           outputs_info=None)
-        good = T.sum(o)
-        o, u = theano.scan(fn=notsame, sequences=[out, gold],
-                           outputs_info=None)
-        bad = T.sum(o)
-        return T.cast(T.cast(good, dtype='floatX')
-                      / (good + bad), dtype='floatX')
-
-    @functools.wraps(Cost.get_monitoring_channels)
-    def get_monitoring_channels(self, model, data, **kwargs):
-        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
-        costs = self.compute_costs(model, data, **kwargs)
-        d['cost_seq_score'] = -costs[0]
-        d['NF'] = -T.max(costs[3])
-
-        start, combined, end = costs[1:]
-        tagged = T.concatenate([start.reshape((1, model.n_classes)),
-                                combined,
-                                end.reshape((1, model.n_classes))])
-        _, targets = data
-
-        d['Prec'] = self.per_word_precision(targets, tagged)
-
-        return d
+#    @functools.wraps(Cost.get_monitoring_channels)
+#    def get_monitoring_channels(self, model, data, **kwargs):
+#        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
+#        return d
