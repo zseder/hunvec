@@ -75,7 +75,7 @@ class WordTaggerDataset(Dataset):
 
         if num_batches is None:
             if 'shuffle' in mode:
-                num_batches = len(self.X1) / (batch_size * 10)
+                num_batches = len(self.X1) / (batch_size)
             else:
                 num_batches = len(self.X1) / batch_size
 
