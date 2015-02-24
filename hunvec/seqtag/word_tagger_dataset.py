@@ -52,7 +52,7 @@ class WordTaggerDataset(Dataset):
             IndexSequenceSpace(max_labels=vocab_size, dim=window_size),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
-            VectorSequenceSpace(dim=n_classes)
+            IndexSequenceSpace(dim=1, max_labels=n_classes)
         ))
         source = ('words', 'features', 'targets')
         self.data_specs = (space, source)
@@ -137,14 +137,6 @@ class WordTaggerDataset(Dataset):
 
             words.append(numpy.array(sen_words))
             features.append(numpy.array(sen_features))
-            y.append(sen_y)
-
-        y_ = []
-        for sen_y in y:
-            y_.append(numpy.zeros((len(sen_y), len(classes)),
-                                  dtype=numpy.float32))
-            for row_i, v in enumerate(sen_y):
-                y_[-1][row_i][v] = 1
-        y = y_
+            y.append(numpy.array(sen_y))
 
         return words, features, y, vocab, classes

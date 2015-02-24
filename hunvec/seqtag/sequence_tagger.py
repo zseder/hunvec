@@ -158,7 +158,7 @@ class SequenceTaggerNetwork(Model):
             y = self.f(words_, feats_)
             tagger_out = y[2 + self.n_classes:]
             _, best_path = viterbi(start, A, end, tagger_out, self.n_classes)
-            yield best_path
+            yield numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
         tagged = self.tag_seq(dataset.X1, dataset.X2)
@@ -166,16 +166,11 @@ class SequenceTaggerNetwork(Model):
         good, bad = 0., 0.
         if mode == 'pwp':
             for t, g in izip(tagged, gold):
-                t_m = numpy.array(t)
-                g_m = g.argmax(axis=1)
-                good += sum(t_m == g_m)
-                bad += sum(t_m != g_m)
+                good += sum(t == g)
+                bad += sum(t != g)
             return good / (good + bad)
         elif mode == 'f1':
-            return self.f1c.count_score(
-                (g.argmax(axis=1) for g in gold),
-                (numpy.array(t) for t in tagged)
-            )
+            return self.f1c.count_score(gold, tagged)
 
 
 def init_brown():
@@ -244,7 +239,7 @@ def init_eng_ner():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=100, hdim=300, dataset=d['train'],
+                               edim=10, hdim=30, dataset=d['train'],
                                max_epochs=300)
     wt.f1c = FScCounter(train_c.i2t)
     return d, wt, train_c, valid_c, test_c

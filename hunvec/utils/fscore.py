@@ -72,14 +72,11 @@ class FScCounter:
 
     def generate_phrases(self, sen):
 
-        len_ = len(sen)
-        i = -1
         in_phrase = False
         categ = None
         ph_i = 0
-        while i < len_-1:
-            i += 1
-            ind = sen[i]
+        for i in xrange(len(sen)):
+            ind = sen[i][0]
             if ind in self.phrase_beginners:
                 categ = self.phrase_beginners[ind]['cat']
                 if self.phrase_beginners[ind]['part'] == '1':
