@@ -1,7 +1,3 @@
-import functools
-
-import numpy
-
 import theano
 import theano.tensor as T
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
