@@ -1,5 +1,6 @@
 import sys
 import functools
+from itertools import izip
 
 import numpy
 
@@ -8,11 +9,10 @@ import theano.tensor as T
 
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace
-from pylearn2.utils import sharedX
+from pylearn2.utils import sharedX, serial
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
-from pylearn2.utils import serial
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 
@@ -22,7 +22,8 @@ from hunvec.seqtag.word_tagger_dataset import create_splitted_datasets
 from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.feature.featurizer import Featurizer
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
-from hunvec.utils import viterbi
+from hunvec.utils.viterbi import viterbi
+from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
@@ -55,6 +56,7 @@ class SequenceTaggerNetwork(Model):
                                        size=(self.n_classes + 2,
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
+        self.prepare_tagging()
 
     def __getstate__(self):
         d = {}
@@ -85,21 +87,10 @@ class SequenceTaggerNetwork(Model):
     def get_params(self):
         return self.tagger.get_params() + [self.A]
 
-    @functools.wraps(Model.get_monitoring_channels)
-    def get_monitoring_channels(self, data):
-        rval = Model.get_monitoring_channels(self, data)
-        rval['A_min'] = self.A[2:].min()
-        rval['A_max'] = self.A[2:].max()
-        rval['A_mean'] = self.A[2:].mean()
-        rval['start_min'] = self.A[0].min()
-        rval['start_max'] = self.A[0].max()
-        rval['start_mean'] = self.A[0].mean()
-        rval['end_min'] = self.A[1].min()
-        rval['end_max'] = self.A[1].max()
-        rval['end_mean'] = self.A[1].mean()
-        rval['tagger_min'] = self.tagger.layers[2].get_params()[0].min()
-        rval['tagger_max'] = self.tagger.layers[2].get_params()[0].max()
-        return rval
+#    @functools.wraps(Model.get_monitoring_channels)
+#    def get_monitoring_channels(self, data):
+#        rval = Model.get_monitoring_channels(self, data)
+#        return rval
 
     def create_adjustors(self):
         initial_momentum = .5
@@ -125,7 +116,7 @@ class SequenceTaggerNetwork(Model):
 
         #(layers, A_weight_decay)
         coeffs = ([[1e-4, 1e-4], 1e-4, 1e-4], 1e-4)
-        #coeffs = None
+        coeffs = None
         cost = SeqTaggerCost(coeffs)
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
@@ -150,6 +141,7 @@ class SequenceTaggerNetwork(Model):
                 break
             self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
                                               self.algorithm)
+            print self.get_f1(self.dataset['valid'])
 
     def prepare_tagging(self):
         X = self.get_input_space().make_theano_batch()
@@ -160,11 +152,23 @@ class SequenceTaggerNetwork(Model):
         start = self.A.get_value()[0]
         end = self.A.get_value()[1]
         A = self.A.get_value()[2:]
-        for i in xrange(len(words)):
-            y = self.f(words[i], features[i])
+
+        for words_, feats_ in izip(words, features):
+            y = self.f(words_, feats_)
             tagger_out = y[2 + self.n_classes:]
-            _, best_path = viterbi.viterbi(start, A, end, tagger_out, self.n_classes)
+            _, best_path = viterbi(start, A, end, tagger_out, self.n_classes)
             yield best_path
+
+    def get_f1(self, dataset):
+        tagged = self.tag_seq(dataset.X1, dataset.X2)
+        gold = dataset.y
+        good, bad = 0., 0.
+        for t, g in izip(tagged, gold):
+            t_m = numpy.array(t)
+            g_m = g.argmax(axis=1)
+            good += sum(t_m == g_m)
+            bad += sum(t_m != g_m)
+        return good / (good + bad)
 
 
 def init_brown():
@@ -191,7 +195,7 @@ def init_brown():
 def train_brown_pos():
     #c, d, wt = init_brown()
     #wt.create_algorithm(d, sys.argv[2])
-    d, wt = init_eng_ner()
+    d, wt, _, _, _ = init_eng_ner()
     wt.create_algorithm(d, sys.argv[4])
     wt.train()
 
@@ -233,31 +237,41 @@ def init_eng_ner():
                                total_feats=d['train'].total_feats,
                                feat_num=d['train'].feat_num,
                                n_classes=d['train'].n_classes,
-                               edim=20, hdim=50, dataset=d['train'],
+                               edim=50, hdim=300, dataset=d['train'],
                                max_epochs=300)
-    return d, wt
+    return d, wt, train_c, valid_c, test_c
 
 
 def train_ner():
-    d, wt = init_eng_ner()
+    d, wt, _, _, _ = init_eng_ner()
     wt.create_algorithm(d, sys.argv[4])
     wt.train()
 
 
-def load_and_predict():
-    d, _ = init_eng_ner()
+def load_and_predict_pos():
+    d, _, train_c, _, _ = init_eng_ner()
     d = d['train']
     wt = serial.load(sys.argv[4])
     print d.y[0].argmax(axis=1)
-    #words = T.matrix('words', dtype='int64')
-    #features = T.matrix('features', dtype='int64')
-    #targets = T.matrix('targets', dtype='float32')
     wt.prepare_tagging()
     print list(wt.tag_seq(d.X1[:1], d.X2[:1]))
 
 
+def load_and_predict():
+    d, _, train_c, _, _ = init_eng_ner()
+    d = d['train']
+    wt = serial.load(sys.argv[4])
+    fsc = FScCounter(train_c.i2t)
+    golds = d.y
+    #print d.y[0].argmax(axis=1)
+    wt.prepare_tagging()
+    #print list(wt.tag_seq(d.X1[:1], d.X2[:1]))
+    for sc in fsc.count_score(golds, wt.tag_seq(d.X1, d.X2)):
+        print sc
+
+
 if __name__ == "__main__":
     #predict_test()
-    #train_brown_pos()
-    load_and_predict()
+    train_brown_pos()
+    #load_and_predict_pos()
     #train_ner()
