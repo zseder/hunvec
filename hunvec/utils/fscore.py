@@ -1,4 +1,5 @@
 import numpy
+from itertools import izip
 
 
 class FScCounter:
@@ -78,8 +79,7 @@ class FScCounter:
         ph_i = 0
         while i < len_-1:
             i += 1
-            array = sen[i]
-            ind = numpy.argmax(array)
+            ind = sen[i]
             if ind in self.phrase_beginners:
                 categ = self.phrase_beginners[ind]['cat']
                 if self.phrase_beginners[ind]['part'] == '1':
@@ -98,10 +98,10 @@ class FScCounter:
 
     def count_score(self, gold, input_):
 
-        for i, sen in enumerate(gold):
-            self.process_sen(sen, input_[i])
-            for sc in self.calculate_f():
-                yield sc
+        for gsen, tsen in izip(gold, input_):
+            self.process_sen(gsen, tsen)
+        for sc in self.calculate_f():
+            yield sc
 
     def process_sen(self, gold_sen, input_sen):
 
