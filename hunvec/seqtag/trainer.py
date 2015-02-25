@@ -1,13 +1,16 @@
 import sys
-
-from pylearn2.utils import serial
+import argparse
 
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
 from hunvec.seqtag.word_tagger_dataset import create_splitted_datasets
 from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.feature.featurizer import Featurizer
-from hunvec.utils.fscore import FScCounter
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
+
+
+def create_argparser():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('train_file')
 
 
 def init_network_corpus():
@@ -70,7 +73,6 @@ def init_network_presplitted_corpus():
                                n_classes=d['train'].n_classes,
                                edim=50, hdim=300, dataset=d['train'],
                                max_epochs=300)
-    wt.f1c = FScCounter(train_c.i2t)
     return d, wt, train_c, valid_c, test_c
 
 
@@ -78,16 +80,6 @@ def train_presplitted():
     d, wt, _, _, _ = init_network_presplitted_corpus()
     wt.create_algorithm(d, sys.argv[4])
     wt.train()
-
-
-def load_and_score():
-    d, _, train_c, _, _ = init_network_presplitted_corpus()
-    wt = serial.load(sys.argv[4])
-    wt.prepare_tagging()
-    wt.f1c = FScCounter(train_c.i2t)
-    for k in d:
-        data = d[k]
-        print k, list(wt.get_score(data, 'f1'))
 
 
 if __name__ == "__main__":
