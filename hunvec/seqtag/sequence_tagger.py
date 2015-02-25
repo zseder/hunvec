@@ -107,7 +107,7 @@ class SequenceTaggerNetwork(Model):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name='valid_Prec',
+        cost_crit = MonitorBased(channel_name='valid_objective',
                                  prop_decrease=0., N=10)
         if self.valid_stop:
             term = And(criteria=[cost_crit, term])
