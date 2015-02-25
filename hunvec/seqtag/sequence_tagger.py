@@ -112,8 +112,8 @@ class SequenceTaggerNetwork(Model):
         #(layers, A_weight_decay)
         coeffs = None
         if self.reg_factors:
-            #coeffs = ([[1e-4, 1e-4], 1e-4, 1e-4], 1e-4)
-            coeffs = self.reg_factors
+            rf = self.reg_factors
+            coeffs = ([[rf, rf], rf, rf], rf)
         cost = SeqTaggerCost(coeffs)
 
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',

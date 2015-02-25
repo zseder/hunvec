@@ -11,30 +11,59 @@ from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
 def create_argparser():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('train_file')
+    argparser.add_argument('model_path')
+    argparser.add_argument('--test_file')
+    argparser.add_argument('--valid_file')
+    argparser.add_argument('--train_split', default=[0.8, 0.1, 0.1],
+                           help='train/test/valid ratios, used when only' +
+                           ' training file is given')
+    argparser.add_argument('-w', '--window', default=5, type=int,
+                           dest='window')
+    argparser.add_argument('--hidden', default=100, type=int)
+    argparser.add_argument('--embedding', default=50, type=int)
+    argparser.add_argument('--epochs', default=50, type=int)
+    argparser.add_argument('--regularization', default=.0, type=float,
+                           help='typical values are 1e-5, 1e-4')
+    argparser.add_argument('--use_momentum', action='store_true'),
+    argparser.add_argument('--lr_decay', default=1.0, type='float',
+                           help='decrease ratio over time on learning rate')
+    argparser.add_argument('--valid_stop', default=True,
+                           help='stop when no improvement on valid dataset')
+    return argparser.parse_args()
 
 
-def init_network_corpus():
+def init_network(args, dataset):
+    wt = SequenceTaggerNetwork(vocab_size=dataset.vocab_size,
+                               window_size=dataset.window_size,
+                               total_feats=dataset.total_feats,
+                               feat_num=dataset.feat_num,
+                               n_classes=dataset.n_classes,
+                               edim=args.embedding, hdim=args.hidden,
+                               dataset=dataset,
+                               max_epochs=args.epochs,
+                               use_momentum=args.use_momentum,
+                               lr_decay=args.lr_decay,
+                               valid_stop=args.valid_stop,
+                               reg_factors=args.regularization)
+    return wt
+
+
+def init_network_corpus(args):
     fn = sys.argv[1]
-    ws = 6
+    ws = args.window + 1
     featurizer = Featurizer()
     c = TaggedCorpus(fn, featurizer)
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_words, n_classes = len(vocab), len(classes)
-    d = create_splitted_datasets(words, feats, y, [.8, .1, .1], n_words,
+    d = create_splitted_datasets(words, feats, y, args.train_split, n_words,
                                  ws, featurizer.total, featurizer.feat_num,
                                  n_classes)
-    wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
-                               window_size=d['train'].window_size,
-                               total_feats=d['train'].total_feats,
-                               feat_num=d['train'].feat_num,
-                               n_classes=d['train'].n_classes,
-                               edim=50, hdim=300, dataset=d['train'],
-                               max_epochs=300)
+    wt = init_network(args, d['train'])
     return c, d, wt
 
 
-def init_network_presplitted_corpus():
+def init_network_presplitted_corpus(args):
     train_fn = sys.argv[1]
     valid_fn = sys.argv[2]
     test_fn = sys.argv[3]
@@ -66,22 +95,22 @@ def init_network_presplitted_corpus():
                                 featurizer.total, featurizer.feat_num,
                                 n_classes)
     d = {'train': train_ds, 'valid': valid_ds, 'test': test_ds}
-    wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
-                               window_size=d['train'].window_size,
-                               total_feats=d['train'].total_feats,
-                               feat_num=d['train'].feat_num,
-                               n_classes=d['train'].n_classes,
-                               edim=50, hdim=300, dataset=d['train'],
-                               max_epochs=300)
+    wt = init_network(args, d['train'])
     return d, wt, train_c, valid_c, test_c
 
 
-def train_presplitted():
-    d, wt, _, _, _ = init_network_presplitted_corpus()
-    wt.create_algorithm(d, sys.argv[4])
+def main():
+    args = create_argparser()
+    if args.test_file and args.valid_file:
+        res = init_network_presplitted_corpus(args)
+    else:
+        # use train_split option
+        res = init_network_corpus(args)
+    d = res[0]
+    wt = res[1]
+    wt.create_algorithm(d, args.model_path)
     wt.train()
 
 
 if __name__ == "__main__":
-    train_presplitted()
-    #load_and_score()
+    main()
