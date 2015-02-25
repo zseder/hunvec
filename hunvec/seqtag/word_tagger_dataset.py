@@ -4,7 +4,6 @@ import numpy
 
 from pylearn2.datasets import Dataset
 from pylearn2.space import CompositeSpace, IndexSequenceSpace
-from pylearn2.space import VectorSequenceSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.iteration import resolve_iterator_class
 
@@ -91,8 +90,7 @@ class WordTaggerDataset(Dataset):
         return i
 
     @staticmethod
-    def create_from_tagged_corpus(c, window_size=3, pad_num=-1,
-                                  ratios=[.8, .10, .10]):
+    def create_from_tagged_corpus(c, window_size=3, pad_num=-1):
         words = []
         features = []
         y = []
