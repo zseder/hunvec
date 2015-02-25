@@ -22,7 +22,7 @@ from hunvec.utils.viterbi import viterbi
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, vocab_size, window_size, total_feats, feat_num,
-                 hdim, edim, n_classes, dataset, max_epochs=100,
+                 hdim, edim, n_classes, dataset, w2i, t2i, max_epochs=100,
                  use_momentum=False, lr_decay=1., valid_stop=False,
                  reg_factors=None):
 
@@ -34,6 +34,9 @@ class SequenceTaggerNetwork(Model):
         self.feat_num = feat_num
         self.n_classes = n_classes
         self.max_epochs = max_epochs
+
+        self.w2i = w2i
+        self.t2i = t2i
 
         self.input_space = CompositeSpace([
             dataset.data_specs[0].components[0],
