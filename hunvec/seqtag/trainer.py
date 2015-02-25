@@ -1,4 +1,3 @@
-import sys
 import argparse
 
 from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
@@ -25,14 +24,14 @@ def create_argparser():
     argparser.add_argument('--regularization', default=.0, type=float,
                            help='typical values are 1e-5, 1e-4')
     argparser.add_argument('--use_momentum', action='store_true'),
-    argparser.add_argument('--lr_decay', default=1.0, type='float',
+    argparser.add_argument('--lr_decay', default=1.0, type=float,
                            help='decrease ratio over time on learning rate')
-    argparser.add_argument('--valid_stop', default=True,
-                           help='stop when no improvement on valid dataset')
+    argparser.add_argument('--valid_stop', type=bool, default=True,
+                           help='don\'t use valid data to decide when to stop')
     return argparser.parse_args()
 
 
-def init_network(args, dataset):
+def init_network(args, dataset, corpus):
     wt = SequenceTaggerNetwork(vocab_size=dataset.vocab_size,
                                window_size=dataset.window_size,
                                total_feats=dataset.total_feats,
@@ -40,6 +39,7 @@ def init_network(args, dataset):
                                n_classes=dataset.n_classes,
                                edim=args.embedding, hdim=args.hidden,
                                dataset=dataset,
+                               w2i=corpus.w2i, t2i=corpus.t2i,
                                max_epochs=args.epochs,
                                use_momentum=args.use_momentum,
                                lr_decay=args.lr_decay,
@@ -49,24 +49,23 @@ def init_network(args, dataset):
 
 
 def init_network_corpus(args):
-    fn = sys.argv[1]
     ws = args.window + 1
     featurizer = Featurizer()
-    c = TaggedCorpus(fn, featurizer)
+    c = TaggedCorpus(args.train_file, featurizer)
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_words, n_classes = len(vocab), len(classes)
     d = create_splitted_datasets(words, feats, y, args.train_split, n_words,
                                  ws, featurizer.total, featurizer.feat_num,
                                  n_classes)
-    wt = init_network(args, d['train'])
+    wt = init_network(args, d['train'], c)
     return c, d, wt
 
 
 def init_network_presplitted_corpus(args):
-    train_fn = sys.argv[1]
-    valid_fn = sys.argv[2]
-    test_fn = sys.argv[3]
+    train_fn = args.train_file
+    valid_fn = args.valid_file
+    test_fn = args.test_file
     ws = 6
     featurizer = Featurizer()
     train_c = TaggedCorpus(train_fn, featurizer)
@@ -95,7 +94,7 @@ def init_network_presplitted_corpus(args):
                                 featurizer.total, featurizer.feat_num,
                                 n_classes)
     d = {'train': train_ds, 'valid': valid_ds, 'test': test_ds}
-    wt = init_network(args, d['train'])
+    wt = init_network(args, d['train'], train_c)
     return d, wt, train_c, valid_c, test_c
 
 
