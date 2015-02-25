@@ -1,16 +1,26 @@
-import sys
+import argparse
 
 from pylearn2.utils import serial
 
-from hunvec.seqtag.trainer import init_network_presplitted_corpus
 from hunvec.utils.fscore import FScCounter
+from hunvec.corpus.tagged_corpus import TaggedCorpus
+from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
 
 
-def load_and_score():
-    d, _, train_c, _, _ = init_network_presplitted_corpus()
-    wt = serial.load(sys.argv[4])
+def create_argparser():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('input')
+    argparser.add_argument('model')
+    argparser.add_argument('--fscore', action='store_true',
+                           help='if given, don\'t tag, only compute f1 score')
+    return argparser.parse_args()
+
+
+def load_and_score(args):
+    wt = serial.load(args.model)
+    c = TaggedCorpus(args.input, featurizer=None, w2i=wt.w2i, t2i=wt.t2i)
+    data = WordTaggerDataset.create_from_tagged_corpus(
+        c, window_size=wt.window_size)
     wt.prepare_tagging()
-    wt.f1c = FScCounter(train_c.i2t)
-    for k in d:
-        data = d[k]
-        print k, list(wt.get_score(data, 'f1'))
+    wt.f1c = FScCounter(c.i2t)
+    print list(wt.get_score(data, 'f1'))
