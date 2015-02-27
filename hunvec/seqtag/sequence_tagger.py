@@ -1,4 +1,3 @@
-import sys
 import functools
 from itertools import izip
 
@@ -9,7 +8,7 @@ import theano.tensor as T
 
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace
-from pylearn2.utils import sharedX, serial
+from pylearn2.utils import sharedX
 from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
@@ -17,18 +16,15 @@ from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
-from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
-from hunvec.seqtag.word_tagger_dataset import create_splitted_datasets
-from hunvec.corpus.tagged_corpus import TaggedCorpus
-from hunvec.feature.featurizer import Featurizer
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
-from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, vocab_size, window_size, total_feats, feat_num,
-                 hdim, edim, n_classes, dataset, max_epochs=100):
+                 hdim, edim, n_classes, dataset, w2i, t2i, featurizer,
+                 max_epochs=100, use_momentum=False, lr_decay=1.,
+                 valid_stop=False, reg_factors=None):
 
         super(SequenceTaggerNetwork, self).__init__()
 
@@ -38,6 +34,10 @@ class SequenceTaggerNetwork(Model):
         self.feat_num = feat_num
         self.n_classes = n_classes
         self.max_epochs = max_epochs
+
+        self.w2i = w2i
+        self.t2i = t2i
+        self.featurizer = featurizer
 
         self.input_space = CompositeSpace([
             dataset.data_specs[0].components[0],
@@ -57,6 +57,10 @@ class SequenceTaggerNetwork(Model):
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
         self.prepare_tagging()
+        self.use_momentum = use_momentum
+        self.lr_decay = lr_decay
+        self.valid_stop = valid_stop
+        self.reg_factors = reg_factors
 
     def __getstate__(self):
         d = {}
@@ -71,6 +75,9 @@ class SequenceTaggerNetwork(Model):
         d['target_source'] = self.target_source
         d['A'] = self.A
         d['tagger'] = self.tagger
+        d['w2i'] = self.w2i
+        d['t2i'] = self.t2i
+        d['featurizer'] = self.featurizer
         return d
 
     def fprop(self, data):
@@ -87,11 +94,6 @@ class SequenceTaggerNetwork(Model):
     def get_params(self):
         return self.tagger.get_params() + [self.A]
 
-#    @functools.wraps(Model.get_monitoring_channels)
-#    def get_monitoring_channels(self, data):
-#        rval = Model.get_monitoring_channels(self, data)
-#        return rval
-
     def create_adjustors(self):
         initial_momentum = .5
         final_momentum = .99
@@ -102,29 +104,35 @@ class SequenceTaggerNetwork(Model):
         self.momentum_rule = learning_rule.Momentum(initial_momentum,
                                                     nesterov_momentum=True)
 
-        decay_factor = .1
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 10000, decay_factor)
+            start, saturate * 10000, self.lr_decay)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         self.create_adjustors()
-        epoch_cnt_crit = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name='valid_Prec',
-                                 prop_decrease=0., N=10)
-        term = And(criteria=[cost_crit, epoch_cnt_crit])
+        term = EpochCounter(max_epochs=self.max_epochs)
+        cost_crit = MonitorBased(channel_name='valid_objective',
+                                 prop_decrease=0., N=2)
+        if self.valid_stop:
+            print 'VALID_STOP'
+            term = And(criteria=[cost_crit, term])
 
         #(layers, A_weight_decay)
-        coeffs = ([[1e-4, 1e-4], 1e-4, 1e-4], 1e-4)
         coeffs = None
+        if self.reg_factors:
+            rf = self.reg_factors
+            coeffs = ([[rf, rf], rf, rf], rf)
         cost = SeqTaggerCost(coeffs)
+
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
+
+        learning_rule = (self.momentum_rule if self.use_momentum else None)
         self.algorithm = SGD(batch_size=1, learning_rate=0.05,
-                             termination_criterion=epoch_cnt_crit,
+                             termination_criterion=term,
                              monitoring_dataset=data,
                              cost=cost,
-                             learning_rule=self.momentum_rule,
+                             learning_rule=learning_rule,
                              update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
@@ -139,10 +147,9 @@ class SequenceTaggerNetwork(Model):
             self.mbsb.on_monitor(self, self.dataset['valid'], self.algorithm)
             if not self.algorithm.continue_learning(self):
                 break
-            self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
-                                              self.algorithm)
-            print list(self.get_score(self.dataset['valid'], 'f1'))
-            print self.get_score(self.dataset['valid'], 'pwp')
+            if self.use_momentum:
+                self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
+                                                  self.algorithm)
 
     def prepare_tagging(self):
         X = self.get_input_space().make_theano_batch()
@@ -171,110 +178,3 @@ class SequenceTaggerNetwork(Model):
             return good / (good + bad)
         elif mode == 'f1':
             return self.f1c.count_score(gold, tagged)
-
-
-def init_brown():
-    fn = sys.argv[1]
-    ws = 6
-    featurizer = Featurizer()
-    c = TaggedCorpus(fn, featurizer)
-    res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
-    words, feats, y, vocab, classes = res
-    n_words, n_classes = len(vocab), len(classes)
-    d = create_splitted_datasets(words, feats, y, [.8, .1, .1], n_words,
-                                 ws, featurizer.total, featurizer.feat_num,
-                                 n_classes)
-    wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
-                               window_size=d['train'].window_size,
-                               total_feats=d['train'].total_feats,
-                               feat_num=d['train'].feat_num,
-                               n_classes=d['train'].n_classes,
-                               edim=50, hdim=300, dataset=d['train'],
-                               max_epochs=300)
-    return c, d, wt
-
-
-def train_brown_pos():
-    #c, d, wt = init_brown()
-    #wt.create_algorithm(d, sys.argv[2])
-    d, wt, _, _, _ = init_eng_ner()
-    wt.create_algorithm(d, sys.argv[4])
-    wt.train()
-
-
-def init_eng_ner():
-    train_fn = sys.argv[1]
-    valid_fn = sys.argv[2]
-    test_fn = sys.argv[3]
-    ws = 6
-    featurizer = Featurizer()
-    train_c = TaggedCorpus(train_fn, featurizer)
-    valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
-                           t2i=train_c.t2i)
-    test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
-                          t2i=valid_c.t2i)
-    train_res = WordTaggerDataset.create_from_tagged_corpus(
-        train_c, window_size=ws)
-    valid_res = WordTaggerDataset.create_from_tagged_corpus(
-        valid_c, window_size=ws)
-    test_res = WordTaggerDataset.create_from_tagged_corpus(
-        test_c, window_size=ws)
-    words, feats, y, _, _ = train_res
-    n_words = len(train_res[3] | test_res[3] | valid_res[3])
-    n_classes = len(train_res[4] | test_res[4] | valid_res[4])
-    train_ds = WordTaggerDataset((words, feats), y, n_words, ws,
-                                 featurizer.total, featurizer.feat_num,
-                                 n_classes)
-    words, feats, y, _, _ = valid_res
-    valid_ds = WordTaggerDataset((words, feats), y, n_words, ws,
-                                 featurizer.total, featurizer.feat_num,
-                                 n_classes)
-    words, feats, y, _, _ = test_res
-    test_ds = WordTaggerDataset((words, feats), y, n_words, ws,
-                                featurizer.total, featurizer.feat_num,
-                                n_classes)
-    d = {'train': train_ds, 'valid': valid_ds, 'test': test_ds}
-    wt = SequenceTaggerNetwork(vocab_size=d['train'].vocab_size,
-                               window_size=d['train'].window_size,
-                               total_feats=d['train'].total_feats,
-                               feat_num=d['train'].feat_num,
-                               n_classes=d['train'].n_classes,
-                               edim=10, hdim=30, dataset=d['train'],
-                               max_epochs=300)
-    wt.f1c = FScCounter(train_c.i2t)
-    return d, wt, train_c, valid_c, test_c
-
-
-def train_ner():
-    d, wt, _, _, _ = init_eng_ner()
-    wt.create_algorithm(d, sys.argv[4])
-    wt.train()
-
-
-def load_and_predict_pos():
-    d, _, train_c, _, _ = init_eng_ner()
-    d = d['train']
-    wt = serial.load(sys.argv[4])
-    print d.y[0].argmax(axis=1)
-    wt.prepare_tagging()
-    print list(wt.tag_seq(d.X1[:1], d.X2[:1]))
-
-
-def load_and_predict():
-    d, _, train_c, _, _ = init_eng_ner()
-    d = d['train']
-    wt = serial.load(sys.argv[4])
-    fsc = FScCounter(train_c.i2t)
-    golds = d.y
-    #print d.y[0].argmax(axis=1)
-    wt.prepare_tagging()
-    #print list(wt.tag_seq(d.X1[:1], d.X2[:1]))
-    for sc in fsc.count_score(golds, wt.tag_seq(d.X1, d.X2)):
-        print sc
-
-
-if __name__ == "__main__":
-    #predict_test()
-    train_brown_pos()
-    #load_and_predict_pos()
-    #train_ner()
