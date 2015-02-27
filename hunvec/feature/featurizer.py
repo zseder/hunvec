@@ -19,13 +19,23 @@ def suffix_ngram_feature(word, n=3, end_index=None):
 snf = suffix_ngram_feature
 
 
+def lasts(x):
+    return snf(x, 3, None)
+
+
+def last_but_ones(x):
+    return snf(x, 3, -1)
+
+
+def last_but_twos(x):
+    return snf(x, 3, -2)
+
+
 class Featurizer(object):
     def __init__(self):
         self.feats = [
             case_feature,
-            lambda x: snf(x, 3, None),  # last three (included $)
-            lambda x: snf(x, 3, -1),  # "last but one" three
-            lambda x: snf(x, 3, -2),
+            lasts, last_but_ones, last_but_twos
         ]
         self.feat_num = len(self.feats)
 
