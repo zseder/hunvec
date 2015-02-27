@@ -40,6 +40,7 @@ def init_network(args, dataset, corpus):
                                edim=args.embedding, hdim=args.hidden,
                                dataset=dataset,
                                w2i=corpus.w2i, t2i=corpus.t2i,
+                               featurizer=corpus.featurizer,
                                max_epochs=args.epochs,
                                use_momentum=args.use_momentum,
                                lr_decay=args.lr_decay,

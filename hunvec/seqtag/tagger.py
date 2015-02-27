@@ -18,9 +18,26 @@ def create_argparser():
 
 def load_and_score(args):
     wt = serial.load(args.model)
-    c = TaggedCorpus(args.input, featurizer=None, w2i=wt.w2i, t2i=wt.t2i)
+    c = TaggedCorpus(args.input, featurizer=wt.featurizer,
+                     w2i=wt.w2i, t2i=wt.t2i)
     data = WordTaggerDataset.create_from_tagged_corpus(
         c, window_size=wt.window_size)
+    words, feats, y, _, _ = data
+    ds = WordTaggerDataset((words, feats), y, wt.vocab_size, wt.window_size,
+                           wt.featurizer.total, wt.featurizer.feat_num,
+                           wt.n_classes)
     wt.prepare_tagging()
     wt.f1c = FScCounter(c.i2t)
-    print list(wt.get_score(data, 'f1'))
+    print list(wt.get_score(ds, 'f1'))
+
+
+def main():
+    args = create_argparser()
+    if args.fscore:
+        load_and_score(args)
+    else:
+        raise Exception("Tagging is not implemented yet")
+
+
+if __name__ == '__main__':
+    main()

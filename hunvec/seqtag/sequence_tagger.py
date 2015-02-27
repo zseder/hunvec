@@ -22,9 +22,9 @@ from hunvec.utils.viterbi import viterbi
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, vocab_size, window_size, total_feats, feat_num,
-                 hdim, edim, n_classes, dataset, w2i, t2i, max_epochs=100,
-                 use_momentum=False, lr_decay=1., valid_stop=False,
-                 reg_factors=None):
+                 hdim, edim, n_classes, dataset, w2i, t2i, featurizer,
+                 max_epochs=100, use_momentum=False, lr_decay=1.,
+                 valid_stop=False, reg_factors=None):
 
         super(SequenceTaggerNetwork, self).__init__()
 
@@ -37,6 +37,7 @@ class SequenceTaggerNetwork(Model):
 
         self.w2i = w2i
         self.t2i = t2i
+        self.featurizer = featurizer
 
         self.input_space = CompositeSpace([
             dataset.data_specs[0].components[0],
@@ -74,6 +75,9 @@ class SequenceTaggerNetwork(Model):
         d['target_source'] = self.target_source
         d['A'] = self.A
         d['tagger'] = self.tagger
+        d['w2i'] = self.w2i
+        d['t2i'] = self.t2i
+        d['featurizer'] = self.featurizer
         return d
 
     def fprop(self, data):
@@ -101,15 +105,16 @@ class SequenceTaggerNetwork(Model):
                                                     nesterov_momentum=True)
 
         self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 1000, self.lr_decay)
+            start, saturate * 10000, self.lr_decay)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
         cost_crit = MonitorBased(channel_name='valid_objective',
-                                 prop_decrease=0., N=10)
+                                 prop_decrease=0., N=2)
         if self.valid_stop:
+            print 'VALID_STOP'
             term = And(criteria=[cost_crit, term])
 
         #(layers, A_weight_decay)
