@@ -6,9 +6,10 @@ from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
     supervised = True
 
-    def __init__(self, regularization_costs=None):
+    def __init__(self, regularization_costs=None, dropout=False):
         super(SeqTaggerCost, self).__init__()
         self.reg = regularization_costs
+        self.dropout = dropout
 
     def expr(self, model, data, **kwargs):
         ## compute score as Collobert did
@@ -24,7 +25,10 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
     def compute_costs(self, model, data, **kwargs):
         inputs, targets = data
-        outputs = model.fprop(inputs)
+        if not self.dropout:
+            outputs = model.fprop(inputs)
+        else:
+            outputs = model.dropout_fprop(inputs)
 
         # unpack A and tagger_out from outputs
         start = outputs[0]

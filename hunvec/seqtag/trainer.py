@@ -28,6 +28,8 @@ def create_argparser():
                            help='decrease ratio over time on learning rate')
     argparser.add_argument('--valid_stop', type=bool, default=True,
                            help='don\'t use valid data to decide when to stop')
+    argparser.add_argument('--dropout', action='store_true',
+                           help='use dropout on inner network')
     return argparser.parse_args()
 
 
@@ -45,7 +47,9 @@ def init_network(args, dataset, corpus):
                                use_momentum=args.use_momentum,
                                lr_decay=args.lr_decay,
                                valid_stop=args.valid_stop,
-                               reg_factors=args.regularization)
+                               reg_factors=args.regularization,
+                               dropout=args.dropout
+                               )
     return wt
 
 

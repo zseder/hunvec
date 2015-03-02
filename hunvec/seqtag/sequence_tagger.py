@@ -14,6 +14,7 @@ from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecay
+from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
@@ -24,7 +25,7 @@ class SequenceTaggerNetwork(Model):
     def __init__(self, vocab_size, window_size, total_feats, feat_num,
                  hdim, edim, n_classes, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
-                 valid_stop=False, reg_factors=None):
+                 valid_stop=False, reg_factors=None, dropout=False):
 
         super(SequenceTaggerNetwork, self).__init__()
 
@@ -85,6 +86,15 @@ class SequenceTaggerNetwork(Model):
         probs = T.concatenate([self.A, tagger_out])
         return probs
 
+    def dropout_fprop(self, data, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.0,
+                      input_scales=None, per_example=True):
+        tagger_out = self.tagger.dropout_fprop(
+            data, default_input_include_prob, input_include_probs,
+            default_input_scale, input_scales, per_example)
+        probs = T.concatenate([self.A, tagger_out])
+        return probs
+
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
         d = self.tagger.get_lr_scalers()
@@ -106,15 +116,16 @@ class SequenceTaggerNetwork(Model):
 
         self.learning_rate_adjustor = LinearDecay(
             start, saturate * 10000, self.lr_decay)
+        self.learning_rate_adjustor = MonitorBasedLRAdjuster(
+            low_trigger=1., shrink_amt=.9, channel_name='valid_objective')
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
         cost_crit = MonitorBased(channel_name='valid_objective',
-                                 prop_decrease=0., N=2)
+                                 prop_decrease=0., N=10)
         if self.valid_stop:
-            print 'VALID_STOP'
             term = And(criteria=[cost_crit, term])
 
         #(layers, A_weight_decay)
@@ -128,15 +139,16 @@ class SequenceTaggerNetwork(Model):
                                          save_path=save_best_path)
 
         learning_rule = (self.momentum_rule if self.use_momentum else None)
-        self.algorithm = SGD(batch_size=1, learning_rate=0.05,
+        self.algorithm = SGD(batch_size=1, learning_rate=0.01,
                              termination_criterion=term,
                              monitoring_dataset=data,
                              cost=cost,
                              learning_rule=learning_rule,
-                             update_callbacks=[self.learning_rate_adjustor],
+                             #update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
-                             algorithm=self.algorithm)
+                             algorithm=self.algorithm,
+                             extensions=[self.learning_rate_adjustor])
         self.algorithm.setup(self, self.dataset['train'])
 
     def train(self):
@@ -150,6 +162,8 @@ class SequenceTaggerNetwork(Model):
             if self.use_momentum:
                 self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
                                                   self.algorithm)
+            self.learning_rate_adjustor.on_monitor(self, self.dataset['valid'],
+                                                   self.algorithm)
 
     def prepare_tagging(self):
         X = self.get_input_space().make_theano_batch()
