@@ -131,7 +131,9 @@ class SequenceTaggerNetwork(Model):
         coeffs = None
         if self.reg_factors:
             rf = self.reg_factors
-            coeffs = ([[rf, rf], rf, rf], rf)
+            lhdims = len(self.tagger.hdims)
+            #coeffs = ([[rf, rf], rf, rf], rf)
+            coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs)
 
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
