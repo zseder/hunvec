@@ -7,6 +7,11 @@ from hunvec.feature.featurizer import Featurizer
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
 
 
+class CSL2L(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, [float(_) for _ in values.split(',')])
+
+
 def create_argparser():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('train_file')
@@ -18,7 +23,10 @@ def create_argparser():
                            ' training file is given')
     argparser.add_argument('-w', '--window', default=5, type=int,
                            dest='window')
-    argparser.add_argument('--hidden', default=100, type=int)
+    argparser.add_argument('--hidden', default='100',
+                           help='comma separated integers, number of units' +
+                           'of hidden layers',
+                           action=CSL2L)
     argparser.add_argument('--embedding', default=50, type=int)
     argparser.add_argument('--epochs', default=50, type=int)
     argparser.add_argument('--regularization', default=.0, type=float,
@@ -34,12 +42,7 @@ def create_argparser():
 
 
 def init_network(args, dataset, corpus):
-    wt = SequenceTaggerNetwork(vocab_size=dataset.vocab_size,
-                               window_size=dataset.window_size,
-                               total_feats=dataset.total_feats,
-                               feat_num=dataset.feat_num,
-                               n_classes=dataset.n_classes,
-                               edim=args.embedding, hdim=args.hidden,
+    wt = SequenceTaggerNetwork(edim=args.embedding, hdims=args.hidden,
                                dataset=dataset,
                                w2i=corpus.w2i, t2i=corpus.t2i,
                                featurizer=corpus.featurizer,

@@ -22,18 +22,17 @@ from hunvec.utils.viterbi import viterbi
 
 
 class SequenceTaggerNetwork(Model):
-    def __init__(self, vocab_size, window_size, total_feats, feat_num,
-                 hdim, edim, n_classes, dataset, w2i, t2i, featurizer,
+    def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
                  valid_stop=False, reg_factors=None, dropout=False):
 
         super(SequenceTaggerNetwork, self).__init__()
 
-        self.vocab_size = vocab_size
-        self.window_size = window_size
-        self.total_feats = total_feats
-        self.feat_num = feat_num
-        self.n_classes = n_classes
+        self.vocab_size = dataset.vocab_size
+        self.window_size = dataset.window_size
+        self.total_feats = dataset.total_feats
+        self.feat_num = dataset.feat_num
+        self.n_classes = dataset.n_classes
         self.max_epochs = max_epochs
 
         self.w2i = w2i
@@ -49,9 +48,9 @@ class SequenceTaggerNetwork(Model):
         self.input_source = ('words', 'features')
         self.target_source = 'targets'
 
-        self.tagger = WordTaggerNetwork(vocab_size, window_size,
+        self.tagger = WordTaggerNetwork(self.vocab_size, self.window_size,
                                         self.total_feats, self.feat_num,
-                                        hdim, edim, n_classes)
+                                        hdims, edim, self.n_classes)
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -117,7 +116,7 @@ class SequenceTaggerNetwork(Model):
         self.learning_rate_adjustor = LinearDecay(
             start, saturate * 10000, self.lr_decay)
         self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-            low_trigger=1., shrink_amt=.9, channel_name='valid_objective')
+            low_trigger=1., shrink_amt=.9, channel_name='train_objective')
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
