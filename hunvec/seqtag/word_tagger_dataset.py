@@ -62,30 +62,28 @@ class WordTaggerDataset(Dataset):
     def get_data_specs(self):
         return self.data_specs
 
-    def get_monitoring_data_specs(self):
-        return self.data_specs
-
-    def get_data(self):
-        return self.X1, self.X2, self.y
+    def get(self, source, next_index):
+        # HACK since there are iterators that are 'fancy', and others are
+        # not, we have to be prepared for numbered and sliced indexing
+        if type(next_index) is slice:
+            return (self.X1[next_index][0],
+                    self.X2[next_index][0],
+                    self.y[next_index][0])
+        else:
+            return self.X1[next_index], self.X2[next_index], self.y[next_index]
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=1, num_batches=None,
                  rng=None, data_specs=None, return_tuple=False):
 
         if num_batches is None:
-            if 'shuffle' in mode:
-                num_batches = len(self.X1) / (batch_size)
-            else:
-                num_batches = len(self.X1) / batch_size
+            num_batches = len(self.X1) / (batch_size)
 
         mode = resolve_iterator_class(mode)
-        if data_specs is None:
-            data_specs = self.data_specs
-
         i = FiniteDatasetIterator(
             self,
             mode(len(self.X1), batch_size, num_batches, rng),
-            data_specs=data_specs, return_tuple=return_tuple,
+            data_specs=data_specs,
         )
         return i
 
