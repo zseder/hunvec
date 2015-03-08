@@ -25,7 +25,6 @@ class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
                  valid_stop=False, reg_factors=None, dropout=False):
-        
         super(SequenceTaggerNetwork, self).__init__()
 
         self.vocab_size = dataset.vocab_size
@@ -61,6 +60,7 @@ class SequenceTaggerNetwork(Model):
         self.lr_decay = lr_decay
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
+        self.dropout = dropout
 
     def __getstate__(self):
         d = {}
