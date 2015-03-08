@@ -25,7 +25,7 @@ class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
                  valid_stop=False, reg_factors=None, dropout=False):
-
+        
         super(SequenceTaggerNetwork, self).__init__()
 
         self.vocab_size = dataset.vocab_size
@@ -123,7 +123,7 @@ class SequenceTaggerNetwork(Model):
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
         cost_crit = MonitorBased(channel_name='valid_objective',
-                                 prop_decrease=0., N=10)
+                                 prop_decrease=0., N=5)
         if self.valid_stop:
             term = And(criteria=[cost_crit, term])
 
@@ -134,7 +134,7 @@ class SequenceTaggerNetwork(Model):
             lhdims = len(self.tagger.hdims)
             #coeffs = ([[rf, rf], rf, rf], rf)
             coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
-        cost = SeqTaggerCost(coeffs)
+        cost = SeqTaggerCost(coeffs, self.dropout)
 
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
