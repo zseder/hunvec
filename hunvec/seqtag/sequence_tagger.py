@@ -88,6 +88,10 @@ class SequenceTaggerNetwork(Model):
     def dropout_fprop(self, data, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.0,
                       input_scales=None, per_example=True):
+        if input_scales is None:
+            input_scales = {'input': 1.0}
+        if input_include_probs is None:
+            input_include_probs = {'input': 1.0}
         tagger_out = self.tagger.dropout_fprop(
             data, default_input_include_prob, input_include_probs,
             default_input_scale, input_scales, per_example)
@@ -167,7 +171,7 @@ class SequenceTaggerNetwork(Model):
                                                    self.algorithm)
 
     def prepare_tagging(self):
-        X = self.get_input_space().make_theano_batch()
+        X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
 
