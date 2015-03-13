@@ -24,7 +24,8 @@ from hunvec.utils.viterbi import viterbi
 class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
-                 valid_stop=False, reg_factors=None, dropout=False):
+                 valid_stop=False, reg_factors=None, dropout=False,
+                 embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
 
         self.vocab_size = dataset.vocab_size
@@ -61,6 +62,8 @@ class SequenceTaggerNetwork(Model):
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
         self.dropout = dropout
+        #if embedding_init is not None:
+        #    self.set_embedding_weights(embedding_init)
 
     def __getstate__(self):
         d = {}
@@ -197,3 +200,14 @@ class SequenceTaggerNetwork(Model):
             return good / (good + bad)
         elif mode == 'f1':
             return self.f1c.count_score(gold, tagged)
+
+    def set_embedding_weights(self, embedding_init):
+        # load embedding with gensim
+        from gensim.models import Word2Vec
+        m = Word2Vec.load_word2vec_format(embedding_init, binary=False)
+        del m
+
+        # transform weight matrix with using self.w2i
+
+        # set weights if the specific layer
+        pass
