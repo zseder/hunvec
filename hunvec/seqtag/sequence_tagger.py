@@ -2,6 +2,7 @@ import functools
 from itertools import izip
 
 import numpy
+import gzip
 
 import theano
 import theano.tensor as T
@@ -34,6 +35,8 @@ class SequenceTaggerNetwork(Model):
         self.feat_num = dataset.feat_num
         self.n_classes = dataset.n_classes
         self.max_epochs = max_epochs
+        self.edim = edim
+        self.hdims = hdims
 
         self.w2i = w2i
         self.t2i = t2i
@@ -62,8 +65,8 @@ class SequenceTaggerNetwork(Model):
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
         self.dropout = dropout
-        #if embedding_init is not None:
-        #    self.set_embedding_weights(embedding_init)
+        if embedding_init is not None:
+            self.set_embedding_weights(embedding_init)
 
     def __getstate__(self):
         d = {}
@@ -139,7 +142,6 @@ class SequenceTaggerNetwork(Model):
         if self.reg_factors:
             rf = self.reg_factors
             lhdims = len(self.tagger.hdims)
-            #coeffs = ([[rf, rf], rf, rf], rf)
             coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs, self.dropout)
 
@@ -204,10 +206,35 @@ class SequenceTaggerNetwork(Model):
     def set_embedding_weights(self, embedding_init):
         # load embedding with gensim
         from gensim.models import Word2Vec
-        m = Word2Vec.load_word2vec_format(embedding_init, binary=False)
-        del m
+        try:
+            m = Word2Vec.load_word2vec_format(embedding_init, binary=False)
+            edim = m.layer1_size
+        except UnicodeDecodeError:
+            m = Word2Vec.load_word2vec_format(embedding_init, binary=True)
+            edim = m.layer1_size
+        except ValueError:
+            # glove model
+            m = {}
+            if embedding_init.endswith('gz'):
+                fp = gzip.open(embedding_init)
+            else:
+                fp = open(embedding_init)
+            for l in fp:
+                le = l.split()
+                m[le[0].decode('utf-8')] = numpy.array([float(e) for e in le[1:]])
+                edim = len(le) - 1
+
+        if edim != self.edim:
+            raise Exception("Embedding dim and edim doesn't match")
 
         # transform weight matrix with using self.w2i
+        params = numpy.zeros(self.tagger.layers[0].layers[0].get_param_vector().shape)
+        e = self.edim
+        for w in self.w2i:
+            if w in m:
+                v = m[w]
+                i = self.w2i[w]
+                params[i*e:(i+1)*e] = v
 
         # set weights if the specific layer
-        pass
+        self.tagger.layers[0].layers[0].set_param_vector(params)
