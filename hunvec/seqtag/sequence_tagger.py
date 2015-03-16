@@ -221,14 +221,16 @@ class SequenceTaggerNetwork(Model):
                 fp = open(embedding_init)
             for l in fp:
                 le = l.split()
-                m[le[0].decode('utf-8')] = numpy.array([float(e) for e in le[1:]])
+                m[le[0].decode('utf-8')] = numpy.array(
+                    [float(e) for e in le[1:]])
                 edim = len(le) - 1
 
         if edim != self.edim:
             raise Exception("Embedding dim and edim doesn't match")
 
         # transform weight matrix with using self.w2i
-        params = numpy.zeros(self.tagger.layers[0].layers[0].get_param_vector().shape)
+        params = numpy.zeros(
+            self.tagger.layers[0].layers[0].get_param_vector().shape)
         e = self.edim
         for w in self.w2i:
             if w in m:
