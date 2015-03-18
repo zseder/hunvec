@@ -120,13 +120,13 @@ class SequenceTaggerNetwork(Model):
         self.learning_rate_adjustor = LinearDecay(
             start, saturate * 10000, self.lr_decay)
         self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-            low_trigger=1., shrink_amt=.9, channel_name='train_objective')
+            low_trigger=1., shrink_amt=.9, channel_name='train_nodrop_obj')
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name='valid_objective',
+        cost_crit = MonitorBased(channel_name='valid_nodrop_obj',
                                  prop_decrease=0., N=10)
         if self.valid_stop:
             term = And(criteria=[cost_crit, term])
@@ -139,8 +139,9 @@ class SequenceTaggerNetwork(Model):
             #coeffs = ([[rf, rf], rf, rf], rf)
             coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs, self.dropout)
+        self.cost = cost
 
-        self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
+        self.mbsb = MonitorBasedSaveBest(channel_name='valid_nodrop_obj',
                                          save_path=save_best_path)
 
         learning_rule = (self.momentum_rule if self.use_momentum else None)
