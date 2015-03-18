@@ -24,9 +24,9 @@ from hunvec.utils.viterbi import viterbi
 class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
-                 valid_stop=False, reg_factors=None, dropout=False):
+                 valid_stop=False, reg_factors=None, dropout=False, 
+                 dropout_params=None):
         super(SequenceTaggerNetwork, self).__init__()
-
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
         self.total_feats = dataset.total_feats
@@ -60,7 +60,10 @@ class SequenceTaggerNetwork(Model):
         self.lr_decay = lr_decay
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
-        self.dropout = dropout
+        self.dropout_params = dropout_params
+        self.dropout = dropout or self.dropout_params is not None
+        self.hdims = hdims
+        
 
     def __getstate__(self):
         d = {}
@@ -92,6 +95,13 @@ class SequenceTaggerNetwork(Model):
             input_scales = {'input': 1.0}
         if input_include_probs is None:
             input_include_probs = {'input': 1.0}
+        if self.dropout_params is not None:
+            if len(self.dropout_params) == len(self.hdims) + 1:
+                input_include_probs['tagger_out'] = self.dropout_params[-1]
+                input_scales['tagger_out'] = 1.0/self.dropout_params[-1]
+                for i, p in enumerate(self.dropout_params[:-1]):
+                    input_include_probs['h{0}'.format(i)] = p
+                    input_scales['h{0}'.format(i)] = 1.0/p 
         tagger_out = self.tagger.dropout_fprop(
             data, default_input_include_prob, input_include_probs,
             default_input_scale, input_scales, per_example)
