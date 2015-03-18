@@ -41,6 +41,8 @@ def create_argparser():
                            'include probs per layer')
     argparser.add_argument('--dropout', action='store_true',\
                            help='use dropout on inner network')
+    argparser.add_argument('--embedding_init', help='embedding weights for ' +
+                           'initialization, in word2vec format')
     return argparser.parse_args()
 
 
@@ -55,7 +57,8 @@ def init_network(args, dataset, corpus):
                                valid_stop=args.valid_stop,
                                reg_factors=args.regularization,
                                dropout=args.dropout,
-                               dropout_params=args.dropout_params
+                               dropout_params=args.dropout_params,
+                               embedding_init=args.embedding_init
                                )
     return wt
 
