@@ -38,6 +38,8 @@ def create_argparser():
                            help='don\'t use valid data to decide when to stop')
     argparser.add_argument('--dropout', action='store_true',
                            help='use dropout on inner network')
+    argparser.add_argument('--embedding_init', help='embedding weights for ' +
+                           'initialization, in word2vec format')
     return argparser.parse_args()
 
 
@@ -51,7 +53,8 @@ def init_network(args, dataset, corpus):
                                lr_decay=args.lr_decay,
                                valid_stop=args.valid_stop,
                                reg_factors=args.regularization,
-                               dropout=args.dropout
+                               dropout=args.dropout,
+                               embedding_init=args.embedding_init
                                )
     return wt
 
