@@ -107,6 +107,7 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
         d = self.tagger.get_lr_scalers()
+        d[self.A] = 1. / self.n_classes
         return d
 
     @functools.wraps(Model.get_params)
@@ -155,7 +156,6 @@ class SequenceTaggerNetwork(Model):
                              monitoring_dataset=data,
                              cost=cost,
                              learning_rule=learning_rule,
-                             #update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
                              algorithm=self.algorithm,
