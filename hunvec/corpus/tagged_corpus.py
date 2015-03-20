@@ -3,27 +3,22 @@ class TaggedCorpus(object):
                  use_unknown=False):
         self.fn = fn
         self.featurizer = featurizer
-        self.read()
         if featurizer is not None:
-            self.add_features()
+            self.featurizer.preprocess_corpus(self.read())
 
-        self.w2i = w2i
-        self.t2i = t2i
+        self.w2i = ({} if w2i is None else w2i)
+        self.t2i = ({} if t2i is None else t2i)
         self.use_unknown = use_unknown
         self.unk = -1
 
-        self.turn_to_ints()
+    def add_features(self, sen):
+        new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]
+        return new_sen
 
-    def add_features(self):
-        if self.featurizer is not None:
-            self.featurizer.preprocess_corpus(self.corpus)
-        for sen_i in xrange(len(self.corpus)):
-            sen = self.corpus[sen_i]
-            new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]
-            self.corpus[sen_i] = new_sen
+    def read_into_memory(self):
+        self.corpus = list(self.read())
 
     def read(self):
-        d = []
         s = []
         for l in open(self.fn):
             le = l.strip().split("\t")
@@ -31,26 +26,18 @@ class TaggedCorpus(object):
                 w, pos = le[0], le[1]
                 s.append([w, pos])
             else:
-                d.append(s)
+                if self.featurizer:
+                    s = self.turn_to_ints(self.add_features(s))
+                yield s
                 s = []
         if len(s) > 0:
-            d.append(s)
-        self.corpus = d
+            if self.featurizer:
+                s = self.turn_to_ints(self.add_features(s))
+            yield s
 
-    def turn_to_ints(self):
-        w2i = ({} if self.w2i is None else self.w2i)
-        t2i = ({} if self.t2i is None else self.t2i)
-        for sen_i in xrange(len(self.corpus)):
-            sen = self.corpus[sen_i]
-            for i in xrange(len(sen)):
-                new_wi = (self.unk if self.use_unknown else len(w2i))
-                new_ti = (self.unk if self.use_unknown else len(t2i))
-                sen[i][0] = w2i.setdefault(sen[i][0].lower(), new_wi)
-                sen[i][1] = t2i.setdefault(sen[i][1], new_ti)
-
-        self.t2i = t2i
-        self.w2i = w2i
-        self.i2t = [w for w, i in
-                    sorted(self.t2i.iteritems(), key=lambda x: x[1])]
-        self.i2w = [w for w, i in
-                    sorted(self.w2i.iteritems(), key=lambda x: x[1])]
+    def turn_to_ints(self, sen):
+        for i in xrange(len(sen)):
+            new_wi = (self.unk if self.use_unknown else len(self.w2i))
+            new_ti = (self.unk if self.use_unknown else len(self.t2i))
+            sen[i][0] = self.w2i.setdefault(sen[i][0].lower(), new_wi)
+            sen[i][1] = self.t2i.setdefault(sen[i][1], new_ti)
