@@ -19,7 +19,7 @@ def create_argparser():
 def load_and_score(args):
     wt = serial.load(args.model)
     c = TaggedCorpus(args.input, featurizer=wt.featurizer,
-                     w2i=wt.w2i, t2i=wt.t2i)
+                     w2i=wt.w2i, t2i=wt.t2i, use_unknown=True)
     data = WordTaggerDataset.create_from_tagged_corpus(
         c, window_size=wt.window_size)
     words, feats, y, _, _ = data

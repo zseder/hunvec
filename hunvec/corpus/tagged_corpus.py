@@ -1,5 +1,6 @@
 class TaggedCorpus(object):
-    def __init__(self, fn, featurizer=None, w2i=None, t2i=None):
+    def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
+                 use_unknown=False):
         self.fn = fn
         self.featurizer = featurizer
         self.read()
@@ -8,6 +9,8 @@ class TaggedCorpus(object):
 
         self.w2i = w2i
         self.t2i = t2i
+        self.use_unknown = use_unknown
+        self.unk = -1
 
         self.turn_to_ints()
 
@@ -40,8 +43,10 @@ class TaggedCorpus(object):
         for sen_i in xrange(len(self.corpus)):
             sen = self.corpus[sen_i]
             for i in xrange(len(sen)):
-                sen[i][0] = w2i.setdefault(sen[i][0].lower(), len(w2i))
-                sen[i][1] = t2i.setdefault(sen[i][1], len(t2i))
+                new_wi = (self.unk if self.use_unknown else len(w2i))
+                new_ti = (self.unk if self.use_unknown else len(t2i))
+                sen[i][0] = w2i.setdefault(sen[i][0].lower(), new_wi)
+                sen[i][1] = t2i.setdefault(sen[i][1], new_ti)
 
         self.t2i = t2i
         self.w2i = w2i
