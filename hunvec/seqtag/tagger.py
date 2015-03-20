@@ -3,32 +3,33 @@ import argparse
 from pylearn2.utils import serial
 
 from hunvec.utils.fscore import FScCounter
-from hunvec.corpus.tagged_corpus import TaggedCorpus
-from hunvec.seqtag.word_tagger_dataset import WordTaggerDataset
+from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
+
+
+class CSL2L(argparse.Action):
+    """ convert Comma Separated List into (2) single List"""
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values.split(','))
 
 
 def create_argparser():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('input')
+    argparser.add_argument('dataset')
     argparser.add_argument('model')
     argparser.add_argument('--fscore', action='store_true',
                            help='if given, don\'t tag, only compute f1 score')
+    argparser.add_argument('--sets', action=CSL2L, default=['train'],
+                           help='any subset of train, test and valid, csv')
     return argparser.parse_args()
 
 
 def load_and_score(args):
     wt = serial.load(args.model)
-    c = TaggedCorpus(args.input, featurizer=wt.featurizer,
-                     w2i=wt.w2i, t2i=wt.t2i, use_unknown=True)
-    data = WordTaggerDataset.create_from_tagged_corpus(
-        c, window_size=wt.window_size)
-    words, feats, y, _, _ = data
-    ds = WordTaggerDataset((words, feats), y, wt.vocab_size, wt.window_size,
-                           wt.featurizer.total, wt.featurizer.feat_num,
-                           wt.n_classes)
+    d, c = load_dataset(args.dataset)
     wt.prepare_tagging()
     wt.f1c = FScCounter(c.i2t)
-    print list(wt.get_score(ds, 'f1'))
+    for ds_name in args.sets:
+        print list(wt.get_score(d[ds_name], 'f1'))
 
 
 def main():
