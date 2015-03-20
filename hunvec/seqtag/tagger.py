@@ -18,7 +18,7 @@ def create_argparser():
     argparser.add_argument('model')
     argparser.add_argument('--fscore', action='store_true',
                            help='if given, don\'t tag, only compute f1 score')
-    argparser.add_argument('--sets', action=CSL2L, default=['train'],
+    argparser.add_argument('--sets', action=CSL2L, default=['test'],
                            help='any subset of train, test and valid, csv')
     return argparser.parse_args()
 
