@@ -1,3 +1,5 @@
+import functools
+
 import theano
 import theano.tensor as T
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
@@ -92,7 +94,11 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         end_M = combined_probs[-1] + end
         return start_M, combined_probs[:-1], end_M
 
-#    @functools.wraps(Cost.get_monitoring_channels)
-#    def get_monitoring_channels(self, model, data, **kwargs):
-#        d = Cost.get_monitoring_channels(self, model, data, **kwargs)
-#        return d
+    @functools.wraps(Cost.get_monitoring_channels)
+    def get_monitoring_channels(self, model, data, **kwargs):
+        d = Cost.get_monitoring_channels(self, model, data)
+        if self.dropout:
+            self.dropout = False
+            d['nodrop_obj'] = self.expr(model, data, **kwargs)
+            self.dropout = True
+        return d

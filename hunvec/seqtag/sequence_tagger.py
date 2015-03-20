@@ -25,7 +25,7 @@ from hunvec.utils.viterbi import viterbi
 class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
-                 valid_stop=False, reg_factors=None, dropout=False, 
+                 valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
@@ -105,7 +105,7 @@ class SequenceTaggerNetwork(Model):
                 input_scales['tagger_out'] = 1.0/self.dropout_params[-1]
                 for i, p in enumerate(self.dropout_params[:-1]):
                     input_include_probs['h{0}'.format(i)] = p
-                    input_scales['h{0}'.format(i)] = 1.0/p 
+                    input_scales['h{0}'.format(i)] = 1.0/p
         tagger_out = self.tagger.dropout_fprop(
             data, default_input_include_prob, input_include_probs,
             default_input_scale, input_scales, per_example)
@@ -115,6 +115,7 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
         d = self.tagger.get_lr_scalers()
+        d[self.A] = 1. / self.n_classes
         return d
 
     @functools.wraps(Model.get_params)
@@ -152,6 +153,7 @@ class SequenceTaggerNetwork(Model):
             lhdims = len(self.tagger.hdims)
             coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs, self.dropout)
+        self.cost = cost
 
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
@@ -162,7 +164,6 @@ class SequenceTaggerNetwork(Model):
                              monitoring_dataset=data,
                              cost=cost,
                              learning_rule=learning_rule,
-                             #update_callbacks=[self.learning_rate_adjustor],
                              )
         self.trainer = Train(dataset=data['train'], model=self,
                              algorithm=self.algorithm,
