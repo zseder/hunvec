@@ -25,7 +25,7 @@ from hunvec.utils.viterbi import viterbi
 class SequenceTaggerNetwork(Model):
     def __init__(self, hdims, edim, dataset, w2i, t2i, featurizer,
                  max_epochs=100, use_momentum=False, lr_decay=1.,
-                 valid_stop=False, reg_factors=None, dropout=False, 
+                 valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
@@ -105,7 +105,7 @@ class SequenceTaggerNetwork(Model):
                 input_scales['tagger_out'] = 1.0/self.dropout_params[-1]
                 for i, p in enumerate(self.dropout_params[:-1]):
                     input_include_probs['h{0}'.format(i)] = p
-                    input_scales['h{0}'.format(i)] = 1.0/p 
+                    input_scales['h{0}'.format(i)] = 1.0/p
         tagger_out = self.tagger.dropout_fprop(
             data, default_input_include_prob, input_include_probs,
             default_input_scale, input_scales, per_example)
@@ -135,13 +135,13 @@ class SequenceTaggerNetwork(Model):
         self.learning_rate_adjustor = LinearDecay(
             start, saturate * 10000, self.lr_decay)
         self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-            low_trigger=1., shrink_amt=.9, channel_name='train_nodrop_obj')
+            low_trigger=1., shrink_amt=.9, channel_name='train_objective')
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name='valid_nodrop_obj',
+        cost_crit = MonitorBased(channel_name='valid_objective',
                                  prop_decrease=0., N=10)
         if self.valid_stop:
             term = And(criteria=[cost_crit, term])
@@ -155,7 +155,7 @@ class SequenceTaggerNetwork(Model):
         cost = SeqTaggerCost(coeffs, self.dropout)
         self.cost = cost
 
-        self.mbsb = MonitorBasedSaveBest(channel_name='valid_nodrop_obj',
+        self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
 
         learning_rule = (self.momentum_rule if self.use_momentum else None)
