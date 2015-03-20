@@ -61,7 +61,7 @@ class Featurizer(object):
             for c in self.gazetteers:
                 self.feats.append(partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
         self.feat_num = len(self.feats)
-    
+
     def load_gazetteers(self, fns):
         self.gazetteers = {}
         for c in fns:
@@ -69,7 +69,7 @@ class Featurizer(object):
             for l in open(fns[c]):
                 for i in l.strip().decode('utf-8').lower().split():
                     g.append(i)
-            self.gazetteers[c] = set(g)        
+            self.gazetteers[c] = set(g)
 
     def preprocess_corpus(self, corpus):
         """ reads the whole corpus to preprocess features for detecting
