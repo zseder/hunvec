@@ -42,10 +42,7 @@ def load_and_score(args):
 
 def main():
     args = create_argparser()
-    if args.fscore:
-        load_and_score(args)
-    else:
-        raise Exception("Tagging is not implemented yet")
+    load_and_score(args)
 
 
 if __name__ == '__main__':
