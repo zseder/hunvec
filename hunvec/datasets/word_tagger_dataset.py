@@ -99,7 +99,7 @@ class WordTaggerDataset(Dataset):
         pad = [(pad_num, pad_num, pad_num)] * (window_size - 1)
         # include the word itself
         vocab, classes = set(), set()
-        for sen in c.corpus:
+        for sen in c.read():
             sen = list(pad) + sen + list(pad)
             sen_words, sen_features, sen_y = [], [], []
             # don't create data where y is pad
@@ -181,7 +181,6 @@ def init_split_corpus(args):
     ws = args.window + 1
     featurizer = Featurizer()
     c = TaggedCorpus(args.train_file, featurizer)
-    c.read_into_memory()
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_words, n_classes = len(vocab), len(classes)

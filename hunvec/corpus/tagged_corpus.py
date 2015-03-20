@@ -15,9 +15,6 @@ class TaggedCorpus(object):
         new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]
         return new_sen
 
-    def read_into_memory(self):
-        self.corpus = list(self.read())
-
     def read(self):
         s = []
         for l in open(self.fn):
