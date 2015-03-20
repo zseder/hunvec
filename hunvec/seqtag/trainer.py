@@ -36,7 +36,10 @@ def create_argparser():
                            help='decrease ratio over time on learning rate')
     argparser.add_argument('--valid_stop', type=bool, default=True,
                            help='don\'t use valid data to decide when to stop')
-    argparser.add_argument('--dropout', action='store_true',
+    argparser.add_argument('--dropout_params', action=CSL2L,\
+                           help='use dropout on inner network' + 
+                           'include probs per layer')
+    argparser.add_argument('--dropout', action='store_true',\
                            help='use dropout on inner network')
     argparser.add_argument('--embedding_init', help='embedding weights for ' +
                            'initialization, in word2vec format')
@@ -54,6 +57,7 @@ def init_network(args, dataset, corpus):
                                valid_stop=args.valid_stop,
                                reg_factors=args.regularization,
                                dropout=args.dropout,
+                               dropout_params=args.dropout_params,
                                embedding_init=args.embedding_init
                                )
     return wt
