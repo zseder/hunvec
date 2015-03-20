@@ -54,7 +54,7 @@ class Featurizer(object):
                       'person': '/home/eszter/freebase_lists/pers/per_all'}):
         self.feats = [
             case_feature,
-            lasts, last_but_ones, last_but_twos,
+            lasts, last_but_ones, last_but_twos
         ]
         if gazetteer_needed:
             self.load_gazetteers(fns)
