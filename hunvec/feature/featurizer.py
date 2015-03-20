@@ -39,7 +39,7 @@ def gazetteer_feat(x, name='', set_=([])):
 
 
 class Featurizer(object):
-    def __init__(self, gazetteer_needed=True,
+    def __init__(self, gazetteer_needed=False,
                  fns={'languages': '/home/eszter/CIA_lists/misc/languages.txt',
                       'religion': '/home/eszter/CIA_lists/misc/religion.txt',
                       'ethnic': '/home/eszter/CIA_lists/misc/ethnic.txt',
