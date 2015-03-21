@@ -3,19 +3,19 @@ class TaggedCorpus(object):
                  use_unknown=False):
         self.fn = fn
         self.featurizer = featurizer
+        self.use_unknown = use_unknown
         if featurizer is not None:
-            self.featurizer.preprocess_corpus(self.read())
+            self.featurizer.preprocess_corpus(self.read(pre=True))
 
         self.w2i = ({} if w2i is None else w2i)
         self.t2i = ({} if t2i is None else t2i)
-        self.use_unknown = use_unknown
         self.unk = -1
 
     def add_features(self, sen):
         new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]
         return new_sen
 
-    def read(self):
+    def read(self, pre=False):
         s = []
         for l in open(self.fn):
             le = l.strip().split("\t")
@@ -23,13 +23,15 @@ class TaggedCorpus(object):
                 w, pos = le[0], le[1]
                 s.append([w, pos])
             else:
-                if self.featurizer:
-                    s = self.turn_to_ints(self.add_features(s))
+                if not pre:
+                    s = self.add_features(s)
+                    self.turn_to_ints(s)
                 yield s
                 s = []
         if len(s) > 0:
-            if self.featurizer:
-                s = self.turn_to_ints(self.add_features(s))
+            if not pre:
+                s = self.add_features(s)
+                self.turn_to_ints(s)
             yield s
 
     def turn_to_ints(self, sen):
