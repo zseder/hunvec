@@ -59,7 +59,6 @@ class SequenceTaggerNetwork(Model):
                                        size=(self.n_classes + 2,
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
-        self.prepare_tagging()
         self.use_momentum = use_momentum
         self.lr_decay = lr_decay
         self.valid_stop = valid_stop
@@ -69,8 +68,6 @@ class SequenceTaggerNetwork(Model):
         self.hdims = hdims
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
-
-        self.prepare_tagging()
 
     def __getstate__(self):
         d = {}
@@ -191,10 +188,12 @@ class SequenceTaggerNetwork(Model):
         X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
-        i2t = dict((v, k) for k, v in self.t2i.iteritems())
+        i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
         self.f1c = FScCounter(i2t)
 
     def tag_seq(self, words, features):
+        if not hasattr(self, 'f'):
+            self.prepare_tagging()
         start = self.A.get_value()[0]
         end = self.A.get_value()[1]
         A = self.A.get_value()[2:]
@@ -206,6 +205,7 @@ class SequenceTaggerNetwork(Model):
             yield numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
+        self.prepare_tagging()
         tagged = self.tag_seq(dataset.X1, dataset.X2)
         gold = dataset.y
         good, bad = 0., 0.
@@ -215,7 +215,6 @@ class SequenceTaggerNetwork(Model):
                 bad += sum(t != g)
             return good / (good + bad)
         elif mode == 'f1':
-            self.f1c.init_confusion_matrix()
             return self.f1c.count_score(gold, tagged)
 
     def set_embedding_weights(self, embedding_init):

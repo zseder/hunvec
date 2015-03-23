@@ -92,54 +92,75 @@ class WordTaggerDataset(Dataset):
         return i
 
     @staticmethod
+    def process_sentence(words, features, window_size, featurizer, tags=None,
+                         pad_num=-1):
+        # TODO
+        # - padding should be at the end, after processing
+        # - words and features should be processed separately
+        # - tag is a simple dict lookup, should be done with a simple line
+        #   if tag=None argument is not None
+        # - yield sentence by sentence
+        pad = [pad_num] * (window_size - 1)
+
+        # process words
+        new_words = []
+        words = pad + words
+        for word_i in xrange(window_size - 1, len(words)):
+            window_words = words[word_i - window_size + 1: word_i + 1]
+            new_words.append(window_words)
+        new_words = numpy.array(new_words)
+
+        # process features
+        new_feats = []
+        feats = pad + features
+        for feat_i in xrange(window_size - 1, len(feats)):
+            # combine together features for indices
+            fs = []
+            r = range(word_i - window_size + 1, word_i + 1)
+            for mul, i in enumerate(r):
+                local_feats = feats[i]
+                if local_feats == pad_num:
+                    local_feats = featurizer.fake_features()
+
+                # copy features to not change sentence data
+                local_feats = list(local_feats)
+                for feat_i in xrange(len(local_feats)):
+                    local_feats[feat_i] += mul * featurizer.total
+                fs += local_feats
+            new_feats.append(fs)
+        new_feats = numpy.array(new_feats)
+        res = [new_words, new_feats]
+
+        if tags is not None:
+            new_tags = numpy.array([[tag] for tag in tags])
+            res.append(new_tags)
+
+        return res
+
+    @staticmethod
     def create_from_tagged_corpus(c, window_size=3, pad_num=-1):
-        words = []
-        features = []
+        cwords = []
+        cfeatures = []
         y = []
-        pad = [(pad_num, pad_num, pad_num)] * (window_size - 1)
         # include the word itself
         vocab, classes = set(), set()
         for sen in c.read():
-            sen = list(pad) + sen + list(pad)
-            sen_words, sen_features, sen_y = [], [], []
-            # don't create data where y is pad
-            for word_i in xrange(window_size - 1, len(sen) - window_size + 1):
-                tag = sen[word_i][1]
+            words, tags, features = [list(t) for t in zip(*sen)]
 
-                # the word is there, too
-                window = [w for w, _, _ in
-                          sen[word_i - window_size + 1: word_i + 1]]
+            res = WordTaggerDataset.process_sentence(
+                words, features, window_size, c.featurizer, tags, pad_num)
+            lwords, lfeats, ltags = res
+            vocab |= set(words)
+            classes |= set(tags)
 
-                # combine together features for indices
-                fs = []
-                r = range(word_i - window_size + 1, word_i + 1)
-                for mul, i in enumerate(r):
-                    feats = sen[i][2]
-                    if feats == pad_num:
-                        feats = c.featurizer.fake_features()
-
-                    # copy features to not change sentence data
-                    feats = list(feats)
-                    for feat_i in xrange(len(feats)):
-                        feats[feat_i] += mul * c.featurizer.total
-                    fs += feats
-
-                sen_words.append(window)
-                sen_features.append(fs)
-                sen_y.append([tag])
-
-                # counting
-                vocab |= set(window)
-                classes.add(tag)
-
-            if len(sen_words) < 3:
+            if len(words) < 3:
                 continue
 
-            words.append(numpy.array(sen_words))
-            features.append(numpy.array(sen_features))
-            y.append(numpy.array(sen_y))
+            cwords.append(lwords)
+            cfeatures.append(lfeats)
+            y.append(ltags)
 
-        return words, features, y, vocab, classes
+        return cwords, cfeatures, y, vocab, classes
 
 
 def init_presplitted_corpus(args):

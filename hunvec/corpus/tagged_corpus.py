@@ -7,9 +7,9 @@ class TaggedCorpus(object):
         if featurizer is not None:
             self.featurizer.preprocess_corpus(self.read(pre=True))
 
+        self.unk = -1
         self.w2i = ({} if w2i is None else w2i)
         self.t2i = ({} if t2i is None else t2i)
-        self.unk = -1
 
     def add_features(self, sen):
         new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]

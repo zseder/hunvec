@@ -7,7 +7,6 @@ class FScCounter:
     def __init__(self, labels):
 
         self.get_mappings(labels)
-        self.init_confusion_matrix()
 
     def get_mappings(self, labels):
 
@@ -95,6 +94,7 @@ class FScCounter:
 
     def count_score(self, gold, input_):
 
+        self.init_confusion_matrix()
         for gsen, tsen in izip(gold, input_):
             self.process_sen(gsen, tsen)
         for sc in self.calculate_f():
