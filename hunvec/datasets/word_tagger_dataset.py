@@ -92,14 +92,8 @@ class WordTaggerDataset(Dataset):
         return i
 
     @staticmethod
-    def process_sentence(words, features, window_size, featurizer, tags=None,
-                         pad_num=-1):
-        # TODO
-        # - padding should be at the end, after processing
-        # - words and features should be processed separately
-        # - tag is a simple dict lookup, should be done with a simple line
-        #   if tag=None argument is not None
-        # - yield sentence by sentence
+    def process_sentence(words, features, window_size, featurizer, pad_num=-2,
+                         tags=None):
         pad = [pad_num] * (window_size - 1)
 
         # process words
@@ -138,7 +132,7 @@ class WordTaggerDataset(Dataset):
         return res
 
     @staticmethod
-    def create_from_tagged_corpus(c, window_size=3, pad_num=-1):
+    def create_from_tagged_corpus(c, window_size=3, pad_num=-2):
         cwords = []
         cfeatures = []
         y = []
@@ -148,7 +142,7 @@ class WordTaggerDataset(Dataset):
             words, tags, features = [list(t) for t in zip(*sen)]
 
             res = WordTaggerDataset.process_sentence(
-                words, features, window_size, c.featurizer, tags, pad_num)
+                words, features, window_size, c.featurizer, pad_num, tags)
             lwords, lfeats, ltags = res
             vocab |= set(words)
             classes |= set(tags)

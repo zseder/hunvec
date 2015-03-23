@@ -190,23 +190,24 @@ class SequenceTaggerNetwork(Model):
         self.f = theano.function([X[0], X[1]], Y)
         i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
         self.f1c = FScCounter(i2t)
+        self.start = self.A.get_value()[0]
+        self.end = self.A.get_value()[1]
+        self.A = self.A.get_value()[2:]
 
-    def tag_seq(self, words, features):
+    def tag_sen(self, words, feats):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
-        start = self.A.get_value()[0]
-        end = self.A.get_value()[1]
-        A = self.A.get_value()[2:]
 
-        for words_, feats_ in izip(words, features):
-            y = self.f(words_, feats_)
-            tagger_out = y[2 + self.n_classes:]
-            _, best_path = viterbi(start, A, end, tagger_out, self.n_classes)
-            yield numpy.array([[e] for e in best_path])
+        y = self.f(words, feats)
+        tagger_out = y[2 + self.n_classes:]
+        _, best_path = viterbi(self.start, self.A, self.end, tagger_out,
+                               self.n_classes)
+        return numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
-        tagged = self.tag_seq(dataset.X1, dataset.X2)
+        tagged = (self.tag_sen(w, f) for w, f in
+                  izip(dataset.X1, dataset.X2))
         gold = dataset.y
         good, bad = 0., 0.
         if mode == 'pwp':
