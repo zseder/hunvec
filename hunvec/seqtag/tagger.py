@@ -27,8 +27,8 @@ def load_and_score(args):
     wt = serial.load(args.model)
     d, c = load_dataset(args.dataset)
     wt.prepare_tagging()
-    wt.f1c = FScCounter(c.i2t)
     for ds_name in args.sets:
+        wt.f1c = FScCounter(c.i2t)
         print list(wt.get_score(d[ds_name], 'f1'))
 
 
