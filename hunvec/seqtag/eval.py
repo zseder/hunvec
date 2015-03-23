@@ -2,7 +2,6 @@ import argparse
 
 from pylearn2.utils import serial
 
-from hunvec.utils.fscore import FScCounter
 from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
 
 
@@ -28,11 +27,9 @@ def create_argparser():
 def load_and_score(args):
     wt = serial.load(args.model)
     d, c = load_dataset(args.dataset)
-    wt.prepare_tagging()
     if not (args.fscore ^ args.precision):
         print 'needed on of the arguments: fscore, precision'
     if args.fscore:
-        wt.f1c = FScCounter(c.i2t)
         mode = 'f1'
     elif args.precision:
         mode = 'pwp'

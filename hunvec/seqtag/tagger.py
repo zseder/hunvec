@@ -11,9 +11,7 @@ def create_argparser():
 
 def tag(args):
     wt = serial.load(args.model)
-    wt.prepare_tagging()
     #for ds_name in args.sets:
-    #    wt.f1c = FScCounter(c.i2t)
     #    print list(wt.get_score(d[ds_name], 'f1'))
 
 

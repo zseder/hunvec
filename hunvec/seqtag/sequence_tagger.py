@@ -20,6 +20,7 @@ from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
+from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
@@ -68,6 +69,8 @@ class SequenceTaggerNetwork(Model):
         self.hdims = hdims
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
+
+        self.prepare_tagging()
 
     def __getstate__(self):
         d = {}
@@ -188,6 +191,8 @@ class SequenceTaggerNetwork(Model):
         X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
+        i2t = dict((v, k) for k, v in self.t2i.iteritems())
+        self.f1c = FScCounter(i2t)
 
     def tag_seq(self, words, features):
         start = self.A.get_value()[0]
@@ -210,6 +215,7 @@ class SequenceTaggerNetwork(Model):
                 bad += sum(t != g)
             return good / (good + bad)
         elif mode == 'f1':
+            self.f1c.init_confusion_matrix()
             return self.f1c.count_score(gold, tagged)
 
     def set_embedding_weights(self, embedding_init):
