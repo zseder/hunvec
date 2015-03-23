@@ -192,7 +192,7 @@ class SequenceTaggerNetwork(Model):
         self.f1c = FScCounter(i2t)
         self.start = self.A.get_value()[0]
         self.end = self.A.get_value()[1]
-        self.A = self.A.get_value()[2:]
+        self.A_value = self.A.get_value()[2:]
 
     def tag_sen(self, words, feats):
         if not hasattr(self, 'f'):
@@ -200,7 +200,7 @@ class SequenceTaggerNetwork(Model):
 
         y = self.f(words, feats)
         tagger_out = y[2 + self.n_classes:]
-        _, best_path = viterbi(self.start, self.A, self.end, tagger_out,
+        _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
         return numpy.array([[e] for e in best_path])
 
