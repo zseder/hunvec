@@ -20,6 +20,7 @@ from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
+from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
@@ -58,7 +59,6 @@ class SequenceTaggerNetwork(Model):
                                        size=(self.n_classes + 2,
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
-        self.prepare_tagging()
         self.use_momentum = use_momentum
         self.lr_decay = lr_decay
         self.valid_stop = valid_stop
@@ -188,20 +188,26 @@ class SequenceTaggerNetwork(Model):
         X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
+        i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
+        self.f1c = FScCounter(i2t)
+        self.start = self.A.get_value()[0]
+        self.end = self.A.get_value()[1]
+        self.A_value = self.A.get_value()[2:]
 
-    def tag_seq(self, words, features):
-        start = self.A.get_value()[0]
-        end = self.A.get_value()[1]
-        A = self.A.get_value()[2:]
+    def tag_sen(self, words, feats):
+        if not hasattr(self, 'f'):
+            self.prepare_tagging()
 
-        for words_, feats_ in izip(words, features):
-            y = self.f(words_, feats_)
-            tagger_out = y[2 + self.n_classes:]
-            _, best_path = viterbi(start, A, end, tagger_out, self.n_classes)
-            yield numpy.array([[e] for e in best_path])
+        y = self.f(words, feats)
+        tagger_out = y[2 + self.n_classes:]
+        _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
+                               self.n_classes)
+        return numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
-        tagged = self.tag_seq(dataset.X1, dataset.X2)
+        self.prepare_tagging()
+        tagged = (self.tag_sen(w, f) for w, f in
+                  izip(dataset.X1, dataset.X2))
         gold = dataset.y
         good, bad = 0., 0.
         if mode == 'pwp':
@@ -231,7 +237,7 @@ class SequenceTaggerNetwork(Model):
             for l in fp:
                 le = l.split()
                 m[le[0].decode('utf-8')] = numpy.array(
-                    [float(e) for e in le[1:]])
+                    [float(e) for e in le[1:]], dtype=theano.config.floatX)
                 edim = len(le) - 1
 
         if edim != self.edim:

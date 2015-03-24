@@ -1,43 +1,60 @@
+import sys
 import argparse
+from itertools import izip
 
 from pylearn2.utils import serial
 
-from hunvec.utils.fscore import FScCounter
-from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
-
-
-class CSL2L(argparse.Action):
-    """ convert Comma Separated List into (2) single List"""
-    def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, values.split(','))
+from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
 
 
 def create_argparser():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('dataset')
     argparser.add_argument('model')
-    argparser.add_argument('--fscore', action='store_true',
-                           help='if given, don\'t tag, only compute f1 score')
-    argparser.add_argument('--sets', action=CSL2L, default=['test'],
-                           help='any subset of train, test and valid, csv')
+    argparser.add_argument('--input', dest='input_')
+    argparser.add_argument('--output', dest='output')
     return argparser.parse_args()
 
 
-def load_and_score(args):
+def get_sens(f):
+    sen = []
+    for l in f:
+        l = l.strip().decode('utf-8')
+        if len(l) > 0:
+            sen.append(l)
+        else:
+            yield sen
+            sen = []
+
+
+def process_sentences(wt, sentences):
+    for sen in sentences:
+        sen = [(w, wt.featurizer.featurize(w)) for w in sen]
+        words_, feats_ = [list(l) for l in zip(*sen)]
+        iwords = [wt.w2i.get(w, -1) for w in words_]
+        words, features = WordTaggerDataset.process_sentence(
+            iwords, feats_, wt.window_size, wt.featurizer)
+        yield words, features, words_
+
+
+def tag(args):
     wt = serial.load(args.model)
-    d, c = load_dataset(args.dataset)
-    wt.prepare_tagging()
-    for ds_name in args.sets:
-        wt.f1c = FScCounter(c.i2t)
-        print list(wt.get_score(d[ds_name], 'f1'))
+    # read input from stdin sentence by sentence
+    input_ = (open(args.input_) if args.input_ is not None else sys.stdin)
+    output = (open(args.output, 'w') if args.output is not None
+              else sys.stdout)
+    sens = process_sentences(wt, get_sens(input_))
+    i2t = [t for t, i in sorted(wt.t2i.items(), key=lambda x: x[1])]
+    for words, feats, orig_words in sens:
+        tags = wt.tag_sen(words, feats)
+        for w, t in izip(orig_words, tags):
+            t = i2t[t]
+            output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
+        output.write('\n')
 
 
 def main():
     args = create_argparser()
-    if args.fscore:
-        load_and_score(args)
-    else:
-        raise Exception("Tagging is not implemented yet")
+    tag(args)
 
 
 if __name__ == '__main__':
