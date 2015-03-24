@@ -33,7 +33,7 @@ class WordTaggerNetwork(MLP):
             layer_name='input',
             layers=[
                 ProjectionLayer(layer_name='words', dim=self.edim, irange=.1),
-                ProjectionLayer(layer_name='feats', dim=self.edim, irange=.1),
+                ProjectionLayer(layer_name='feats', dim=5, irange=.1),
             ],
             inputs_to_layers={0: [0], 1: [1]}
         )
