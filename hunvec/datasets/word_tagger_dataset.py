@@ -158,7 +158,7 @@ class WordTaggerDataset(Dataset):
 
 
 def init_presplitted_corpus(args):
-    ws = args.window
+    ws = args.window + 1
     train_fn = args.train_file
     valid_fn = args.valid_file
     test_fn = args.test_file
