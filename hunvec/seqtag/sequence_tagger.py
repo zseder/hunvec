@@ -237,7 +237,7 @@ class SequenceTaggerNetwork(Model):
             for l in fp:
                 le = l.split()
                 m[le[0].decode('utf-8')] = numpy.array(
-                    [float(e) for e in le[1:]], dtype=numpy.float32)
+                    [float(e) for e in le[1:]], dtype=theano.config.floatX)
                 edim = len(le) - 1
 
         if edim != self.edim:
