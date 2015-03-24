@@ -20,6 +20,7 @@ def create_argparser():
                            'of hidden layers',
                            action=CSL2L)
     argparser.add_argument('--embedding', default=50, type=int)
+    argparser.add_argument('--feat_embedding', default=5, type=int)
     argparser.add_argument('--epochs', default=50, type=int)
     argparser.add_argument('--regularization', default=.0, type=float,
                            help='typical values are 1e-5, 1e-4')
@@ -39,7 +40,8 @@ def create_argparser():
 
 
 def init_network(args, dataset, corpus):
-    wt = SequenceTaggerNetwork(edim=args.embedding, hdims=args.hidden,
+    wt = SequenceTaggerNetwork(edim=args.embedding, fedim=args.feat_embedding,
+                               hdims=args.hidden,
                                dataset=dataset,
                                w2i=corpus.w2i, t2i=corpus.t2i,
                                featurizer=corpus.featurizer,
