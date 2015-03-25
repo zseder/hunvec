@@ -25,7 +25,7 @@ from hunvec.utils.fscore import FScCounter
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
-                 edim=50, hdims=[100], fedim=5,
+                 edim=None, hdims=None, fedim=None,
                  max_epochs=100, use_momentum=False, lr=.01, lr_decay=.1,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
@@ -36,6 +36,12 @@ class SequenceTaggerNetwork(Model):
         self.feat_num = dataset.feat_num
         self.n_classes = dataset.n_classes
         self.max_epochs = max_epochs
+        if edim is None:
+            edim = 50
+        if hdims is None:
+            hdims = [100]
+        if fedim is None:
+            fedim = 5
         self.edim = edim
         self.fedim = fedim
         self.hdims = hdims
@@ -198,8 +204,6 @@ class SequenceTaggerNetwork(Model):
         X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
-        i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
-        self.f1c = FScCounter(i2t)
         self.start = self.A.get_value()[0]
         self.end = self.A.get_value()[1]
         self.A_value = self.A.get_value()[2:]
@@ -226,7 +230,9 @@ class SequenceTaggerNetwork(Model):
                 bad += sum(t != g)
             return good / (good + bad)
         elif mode == 'f1':
-            return self.f1c.count_score(gold, tagged)
+            i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
+            f1c = FScCounter(i2t)
+            return f1c.count_score(gold, tagged)
 
     def set_embedding_weights(self, embedding_init):
         # load embedding with gensim
