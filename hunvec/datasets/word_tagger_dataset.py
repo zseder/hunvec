@@ -47,12 +47,12 @@ class WordTaggerDataset(Dataset):
         self.X2 = X[1]
         self.y = y
         self.vocab_size = vocab_size
-        self.window_size = window_size
-        self.total_feats = total_feats * window_size
-        self.feat_num = feat_num * window_size
+        self.window_size = (window_size * 2 - 1)
+        self.total_feats = total_feats * self.window_size
+        self.feat_num = feat_num * self.window_size
         self.n_classes = n_classes
         space = CompositeSpace((
-            IndexSequenceSpace(max_labels=vocab_size, dim=window_size),
+            IndexSequenceSpace(max_labels=vocab_size, dim=self.window_size),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
             IndexSequenceSpace(dim=1, max_labels=n_classes)
@@ -98,19 +98,20 @@ class WordTaggerDataset(Dataset):
 
         # process words
         new_words = []
-        words = pad + words
-        for word_i in xrange(window_size - 1, len(words)):
-            window_words = words[word_i - window_size + 1: word_i + 1]
+        words = pad + words + pad
+        for word_i in xrange(window_size - 1, len(words) - window_size + 1):
+            window_words = words[word_i - window_size + 1:
+                                 word_i + window_size]
             new_words.append(window_words)
         new_words = numpy.array(new_words)
 
         # process features
         new_feats = []
-        feats = pad + features
-        for feat_i in xrange(window_size - 1, len(feats)):
+        feats = pad + features + pad
+        for feat_i in xrange(window_size - 1, len(feats) - window_size + 1):
             # combine together features for indices
             fs = []
-            r = range(word_i - window_size + 1, word_i + 1)
+            r = range(word_i - window_size + 1, word_i + window_size)
             for mul, i in enumerate(r):
                 local_feats = feats[i]
                 if local_feats == pad_num:
