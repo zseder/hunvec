@@ -31,35 +31,42 @@ def last_but_ones(x):
 def last_but_twos(x):
     return snf(x, 3, -2)
 
+
 def gazetteer_feat(x, name='', set_=([])):
     if x.lower() in set_:
         return '1_{0}'.format(name)
     else:
         return '0_{0}'.format(name)
 
+gaz_fns = {
+    'languages': '/home/eszter/CIA_lists/misc/languages.txt',
+    'religion': '/home/eszter/CIA_lists/misc/religion.txt',
+    'ethnic': '/home/eszter/CIA_lists/misc/ethnic.txt',
+    'nationality': '/home/eszter/CIA_lists/misc/nationality.txt',
+    'capital': '/home/eszter/CIA_lists/loc/capital.txt',
+    'city': '/home/eszter/CIA_lists/loc/city.txt',
+    'country': '/home/eszter/CIA_lists/loc/countries.txt',
+    'port': '/home/eszter/CIA_lists/loc/ports.txt',
+    'region': '/home/eszter/CIA_lists/loc/region.txt',
+    'org': '/home/eszter/CIA_lists/org/org.txt',
+    'party': '/home/eszter/CIA_lists/org/party.txt',
+    'person': '/home/eszter/freebase_lists/pers/per_all'
+}
+
 
 class Featurizer(object):
-    def __init__(self, gazetteer_needed=False,
-                 fns={'languages': '/home/eszter/CIA_lists/misc/languages.txt',
-                      'religion': '/home/eszter/CIA_lists/misc/religion.txt',
-                      'ethnic': '/home/eszter/CIA_lists/misc/ethnic.txt',
-                      'nationality': '/home/eszter/CIA_lists/misc/nationality.txt',
-                      'capital': '/home/eszter/CIA_lists/loc/capital.txt',
-                      'city': '/home/eszter/CIA_lists/loc/city.txt',
-                      'country': '/home/eszter/CIA_lists/loc/countries.txt',
-                      'port': '/home/eszter/CIA_lists/loc/ports.txt',
-                      'region': '/home/eszter/CIA_lists/loc/region.txt',
-                      'org': '/home/eszter/CIA_lists/org/org.txt',
-                      'party': '/home/eszter/CIA_lists/org/party.txt',
-                      'person': '/home/eszter/freebase_lists/pers/per_all'}):
+    def __init__(self, gazetteer_needed=False, fns=None):
         self.feats = [
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
         if gazetteer_needed:
+            if fns is None:
+                fns = gaz_fns
             self.load_gazetteers(fns)
             for c in self.gazetteers:
-                self.feats.append(partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
+                self.feats.append(
+                    partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
         self.feat_num = len(self.feats)
 
     def load_gazetteers(self, fns):
