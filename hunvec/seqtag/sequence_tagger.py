@@ -25,7 +25,7 @@ from hunvec.utils.fscore import FScCounter
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
-                 edim=50, hdims=[100], fedim=5,
+                 edim=None, hdims=None, fedim=None,
                  max_epochs=100, use_momentum=False, lr=.01, lr_decay=.1,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
@@ -36,6 +36,12 @@ class SequenceTaggerNetwork(Model):
         self.feat_num = dataset.feat_num
         self.n_classes = dataset.n_classes
         self.max_epochs = max_epochs
+        if edim is None:
+            edim = 50
+        if hdims is None:
+            hdims = [100]
+        if fedim is None:
+            fedim = 5
         self.edim = edim
         self.fedim = fedim
         self.hdims = hdims
