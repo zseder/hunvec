@@ -8,13 +8,14 @@ from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
 
 class WordTaggerNetwork(MLP):
     def __init__(self, vocab_size, window_size, total_feats, feat_num,
-                 hdims, edim, n_classes):
+                 hdims, edim, fedim, n_classes):
         self.vocab_size = vocab_size
         self.ws = window_size
         self.total_feats = total_feats
         self.feat_num = feat_num
         self.hdims = hdims
         self.edim = edim
+        self.fedim = fedim
         self.n_classes = n_classes
         layers, input_space = self.create_network()
         input_source = ('words', 'features')
@@ -33,7 +34,7 @@ class WordTaggerNetwork(MLP):
             layer_name='input',
             layers=[
                 ProjectionLayer(layer_name='words', dim=self.edim, irange=.1),
-                ProjectionLayer(layer_name='feats', dim=self.edim, irange=.1),
+                ProjectionLayer(layer_name='feats', dim=self.fedim, irange=.1),
             ],
             inputs_to_layers={0: [0], 1: [1]}
         )
