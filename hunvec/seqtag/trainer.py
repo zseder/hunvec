@@ -1,8 +1,10 @@
+import os
 import argparse
+
+from pylearn2.utils import serial
 
 # the WordTaggerDataset import is needed because of pickle load
 from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
-
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
 
 
@@ -25,7 +27,9 @@ def create_argparser():
     argparser.add_argument('--regularization', default=.0, type=float,
                            help='typical values are 1e-5, 1e-4')
     argparser.add_argument('--use_momentum', action='store_true'),
-    argparser.add_argument('--lr_decay', default=1.0, type=float,
+    argparser.add_argument('--lr', default=.01, type=float,
+                           help='learning rate')
+    argparser.add_argument('--lr_decay', default=.1, type=float,
                            help='decrease ratio over time on learning rate')
     argparser.add_argument('--valid_stop', type=bool, default=True,
                            help='don\'t use valid data to decide when to stop')
@@ -40,6 +44,19 @@ def create_argparser():
 
 
 def init_network(args, dataset, corpus):
+    if os.path.exists(args.model_path):
+        # loading model instead of creating a new one
+        wt = serial.load(args.model_path)
+        wt.max_epochs = args.epochs
+        wt.use_momentum = args.use_momentum
+        wt.lr = args.lr
+        wt.lr_decay = args.lr_decay
+        wt.valid_stop = args.valid_stop
+        wt.reg_factors = args.regularization
+        wt.dropout_params = args.dropout_params
+        wt.dropout = args.dropout or args.dropout_params is not None
+        return wt
+
     wt = SequenceTaggerNetwork(edim=args.embedding, fedim=args.feat_embedding,
                                hdims=args.hidden,
                                dataset=dataset,
@@ -47,7 +64,7 @@ def init_network(args, dataset, corpus):
                                featurizer=corpus.featurizer,
                                max_epochs=args.epochs,
                                use_momentum=args.use_momentum,
-                               lr_decay=args.lr_decay,
+                               lr=args.lr, lr_decay=args.lr_decay,
                                valid_stop=args.valid_stop,
                                reg_factors=args.regularization,
                                dropout=args.dropout,
