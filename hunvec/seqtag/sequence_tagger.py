@@ -24,8 +24,9 @@ from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
-    def __init__(self, hdims, edim, fedim, dataset, w2i, t2i, featurizer,
-                 max_epochs=100, use_momentum=False, lr=.01, lr_decay=1.,
+    def __init__(self, dataset, w2i, t2i, featurizer,
+                 edim=50, hdims=[100], fedim=5,
+                 max_epochs=100, use_momentum=False, lr=.01, lr_decay=.1,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
@@ -77,7 +78,6 @@ class SequenceTaggerNetwork(Model):
         d['window_size'] = self.window_size
         d['feat_num'] = self.feat_num
         d['n_classes'] = self.n_classes
-        d['max_epochs'] = self.max_epochs
         d['input_space'] = self.input_space
         d['output_space'] = self.output_space
         d['input_source'] = self.input_source
@@ -87,6 +87,14 @@ class SequenceTaggerNetwork(Model):
         d['w2i'] = self.w2i
         d['t2i'] = self.t2i
         d['featurizer'] = self.featurizer
+        d['max_epochs'] = self.max_epochs
+        d['use_momentum'] = self.use_momentum
+        d['lr'] = self.lr
+        d['lr_decay'] = self.lr_decay
+        d['valid_stop'] = self.valid_stop
+        d['reg_factors'] = self.reg_factors
+        d['dropout'] = self.dropout
+        d['dropout_params'] = self.dropout_params
         return d
 
     def fprop(self, data):
