@@ -198,8 +198,6 @@ class SequenceTaggerNetwork(Model):
         X = self.get_input_space().make_theano_batch(batch_size=1)
         Y = self.fprop(X)
         self.f = theano.function([X[0], X[1]], Y)
-        i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
-        self.f1c = FScCounter(i2t)
         self.start = self.A.get_value()[0]
         self.end = self.A.get_value()[1]
         self.A_value = self.A.get_value()[2:]
@@ -226,7 +224,9 @@ class SequenceTaggerNetwork(Model):
                 bad += sum(t != g)
             return good / (good + bad)
         elif mode == 'f1':
-            return self.f1c.count_score(gold, tagged)
+            i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
+            f1c = FScCounter(i2t)
+            return f1c.count_score(gold, tagged)
 
     def set_embedding_weights(self, embedding_init):
         # load embedding with gensim
