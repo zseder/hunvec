@@ -24,8 +24,9 @@ from hunvec.utils.fscore import FScCounter
 
 
 class SequenceTaggerNetwork(Model):
-    def __init__(self, hdims, edim, fedim, dataset, w2i, t2i, featurizer,
-                 max_epochs=100, use_momentum=False, lr_decay=1.,
+    def __init__(self, dataset, w2i, t2i, featurizer,
+                 edim=50, hdims=[100], fedim=5,
+                 max_epochs=100, use_momentum=False, lr=.01, lr_decay=.1,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
@@ -61,6 +62,7 @@ class SequenceTaggerNetwork(Model):
                                              self.n_classes))
         self.A = sharedX(A_value, name='A')
         self.use_momentum = use_momentum
+        self.lr = lr
         self.lr_decay = lr_decay
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
@@ -76,7 +78,6 @@ class SequenceTaggerNetwork(Model):
         d['window_size'] = self.window_size
         d['feat_num'] = self.feat_num
         d['n_classes'] = self.n_classes
-        d['max_epochs'] = self.max_epochs
         d['input_space'] = self.input_space
         d['output_space'] = self.output_space
         d['input_source'] = self.input_source
@@ -86,6 +87,14 @@ class SequenceTaggerNetwork(Model):
         d['w2i'] = self.w2i
         d['t2i'] = self.t2i
         d['featurizer'] = self.featurizer
+        d['max_epochs'] = self.max_epochs
+        d['use_momentum'] = self.use_momentum
+        d['lr'] = self.lr
+        d['lr_decay'] = self.lr_decay
+        d['valid_stop'] = self.valid_stop
+        d['reg_factors'] = self.reg_factors
+        d['dropout'] = self.dropout
+        d['dropout_params'] = self.dropout_params
         return d
 
     def fprop(self, data):
@@ -142,9 +151,9 @@ class SequenceTaggerNetwork(Model):
         self.dataset = data
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
-        cost_crit = MonitorBased(channel_name='valid_objective',
-                                 prop_decrease=0., N=10)
         if self.valid_stop:
+            cost_crit = MonitorBased(channel_name='valid_objective',
+                                     prop_decrease=.0, N=3)
             term = And(criteria=[cost_crit, term])
 
         #(layers, A_weight_decay)
@@ -160,7 +169,7 @@ class SequenceTaggerNetwork(Model):
                                          save_path=save_best_path)
 
         learning_rule = (self.momentum_rule if self.use_momentum else None)
-        self.algorithm = SGD(batch_size=1, learning_rate=0.01,
+        self.algorithm = SGD(batch_size=1, learning_rate=self.lr,
                              termination_criterion=term,
                              monitoring_dataset=data,
                              cost=cost,

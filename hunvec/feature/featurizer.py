@@ -31,35 +31,40 @@ def last_but_ones(x):
 def last_but_twos(x):
     return snf(x, 3, -2)
 
+
 def gazetteer_feat(x, name='', set_=([])):
     if x.lower() in set_:
         return '1_{0}'.format(name)
     else:
         return '0_{0}'.format(name)
 
+gaz_fns = {'languages': '/home/pajkossy/git/hunvec/gaz2/languages.txt',
+           'religion': '/home/pajkossy/git/hunvec/gaz2/religion.txt',
+           'ethnic': '/home/pajkossy/git/hunvec/gaz2/ethnic.txt',
+           'nationality': '/home/pajkossy/git/hunvec/gaz2/nationality.txt',
+           'capital': '/home/pajkossy/git/hunvec/gaz2/capital.txt',
+           'city': '/home/pajkossy/git/hunvec/gaz2/city.txt',
+           'country': '/home/pajkossy/git/hunvec/gaz2/countries.txt',
+           'port': '/home/pajkossy/git/hunvec/gaz2/ports.txt',
+           'region': '/home/pajkossy/git/hunvec/gaz2/region.txt',
+           'org': '/home/pajkossy/git/hunvec/gaz2/org.txt',
+           'party': '/home/pajkossy/git/hunvec/gaz2/party.txt',
+           'person': '/home/pajkossy/git/hunvec/gaz2/per_all'}
+
 
 class Featurizer(object):
-    def __init__(self, gazetteer_needed=False,
-                 fns={'languages': '/home/pajkossy/git/hunvec/gaz2/languages.txt',
-                      'religion': '/home/pajkossy/git/hunvec/gaz2/religion.txt',
-                      'ethnic': '/home/pajkossy/git/hunvec/gaz2/ethnic.txt',
-                      'nationality': '/home/pajkossy/git/hunvec/gaz2/nationality.txt',
-                      'capital': '/home/pajkossy/git/hunvec/gaz2/capital.txt',
-                      'city': '/home/pajkossy/git/hunvec/gaz2/city.txt',
-                      'country': '/home/pajkossy/git/hunvec/gaz2/countries.txt',
-                      'port': '/home/pajkossy/git/hunvec/gaz2/ports.txt',
-                      'region': '/home/pajkossy/git/hunvec/gaz2/region.txt',
-                      'org': '/home/pajkossy/git/hunvec/gaz2/org.txt',
-                      'party': '/home/pajkossy/git/hunvec/gaz2/party.txt',
-                      'person': '/home/pajkossy/git/hunvec/gaz2/per_all'}):
+    def __init__(self, gazetteer_needed=False, fns=None):
         self.feats = [
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
         if gazetteer_needed:
+            if fns is None:
+                fns = gaz_fns
             self.load_gazetteers(fns)
             for c in self.gazetteers:
-                self.feats.append(partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
+                self.feats.append(
+                    partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
         self.feat_num = len(self.feats)
 
     def load_gazetteers(self, fns):

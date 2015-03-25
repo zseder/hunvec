@@ -1,8 +1,11 @@
+import os
+import logging
 import argparse
+
+from pylearn2.utils import serial
 
 # the WordTaggerDataset import is needed because of pickle load
 from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
-
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
 
 
@@ -15,19 +18,20 @@ def create_argparser():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('dataset_file')
     argparser.add_argument('model_path')
-    argparser.add_argument('--hidden', default='100',
+    argparser.add_argument('--hidden',
                            help='comma separated integers, number of units' +
-                           'of hidden layers',
+                           'of hidden layers, default=100',
                            action=CSL2L)
-    argparser.add_argument('--embedding', default=50, type=int)
-    argparser.add_argument('--feat_embedding', default=5, type=int)
-    argparser.add_argument('--epochs', default=50, type=int)
-    argparser.add_argument('--regularization', default=.0, type=float,
+    argparser.add_argument('--embedding', type=int)
+    argparser.add_argument('--feat_embedding', type=int)
+    argparser.add_argument('--epochs', type=int)
+    argparser.add_argument('--regularization', type=float,
                            help='typical values are 1e-5, 1e-4')
     argparser.add_argument('--use_momentum', action='store_true'),
-    argparser.add_argument('--lr_decay', default=1.0, type=float,
+    argparser.add_argument('--lr', type=float, help='learning rate')
+    argparser.add_argument('--lr_decay', type=float,
                            help='decrease ratio over time on learning rate')
-    argparser.add_argument('--valid_stop', type=bool, default=True,
+    argparser.add_argument('--valid_stop', action='store_true',
                            help='don\'t use valid data to decide when to stop')
     argparser.add_argument('--dropout_params', action=CSL2L,
                            help='use dropout on inner network' +
@@ -40,20 +44,38 @@ def create_argparser():
 
 
 def init_network(args, dataset, corpus):
-    wt = SequenceTaggerNetwork(edim=args.embedding, fedim=args.feat_embedding,
-                               hdims=args.hidden,
-                               dataset=dataset,
-                               w2i=corpus.w2i, t2i=corpus.t2i,
-                               featurizer=corpus.featurizer,
-                               max_epochs=args.epochs,
-                               use_momentum=args.use_momentum,
-                               lr_decay=args.lr_decay,
-                               valid_stop=args.valid_stop,
-                               reg_factors=args.regularization,
-                               dropout=args.dropout,
-                               dropout_params=args.dropout_params,
-                               embedding_init=args.embedding_init
-                               )
+    if os.path.exists(args.model_path):
+        # loading model instead of creating a new one
+        wt = serial.load(args.model_path)
+        if args.embedding or args.feat_embedding or args.hidden:
+            msg = "Dimensions and architecture cannot be changed "
+            msg += "when loading a model for further training"
+            logging.warning(msg)
+    else:
+        wt = SequenceTaggerNetwork(
+            dataset=dataset, w2i=corpus.w2i, t2i=corpus.t2i,
+            featurizer=corpus.featurizer,
+            edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
+            embedding_init=args.embedding_init)
+
+    if args.epochs:
+        wt.max_epochs = args.epochs
+    if args.use_momentum:
+        wt.use_momentum = args.use_momentum
+    if args.lr:
+        wt.lr = args.lr
+    if args.lr_decay:
+        wt.lr_decay = args.lr_decay
+    if args.valid_stop:
+        wt.valid_stop = args.valid_stop
+    if args.regularization:
+        wt.reg_factors = args.regularization
+    if args.dropout_params:
+        wt.dropout_params = args.dropout_params
+        wt.dropout = True
+    elif args.dropout:
+        wt.dropout = args.dropout
+
     return wt
 
 
