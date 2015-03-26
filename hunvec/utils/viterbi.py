@@ -1,35 +1,35 @@
-def viterbi(start, A, end, probs, n_classes):
-    V = [{}]
+import numpy
+
+
+def viterbi(start, A, end, tagger_out, n_classes):
+    V = numpy.zeros(tagger_out.shape)
     path = {}
     states = range(n_classes)
 
     # Initialize base cases (t == 0)
+    V[0] = start + tagger_out[0]
     for y in states:
-        V[0][y] = start[y] + probs[0][y]
         path[y] = [y]
 
     # Run Viterbi for t > 0
-    for t in range(1, probs.shape[0]):
-        V.append({})
+    for t in range(1, tagger_out.shape[0]):
         newpath = {}
 
+        l_probs = V[t-1] + A.T + tagger_out[t].reshape((n_classes, 1))
+        if t == tagger_out.shape[0] - 1:
+            l_probs += end.reshape((n_classes, 1))
+        l_states = l_probs.argmax(axis=1)
+        probs = l_probs[states, l_states]
+        V[t] = probs
         for y in states:
-            if t != probs.shape[0] - 1:
-                (prob, state) = max(
-                    (V[t-1][y0] + A[y0][y] + probs[t][y], y0)
-                    for y0 in states)
-            else:
-                (prob, state) = max(
-                    (V[t-1][y0] + A[y0][y] + probs[t][y] + end[y], y0)
-                    for y0 in states)
-            V[t][y] = prob
-            newpath[y] = path[state] + [y]
+            newpath[y] = path[l_states[y]] + [y]
 
         # Don't need to remember the old paths
         path = newpath
 
     n = 0
-    if probs.shape[0] != 1:
+    if tagger_out.shape[0] != 1:
         n = t
-    (prob, state) = max((V[n][y], y) for y in states)
+    state = V[n].argmax()
+    prob = V[n][state]
     return (prob, path[state])
