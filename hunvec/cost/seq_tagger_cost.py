@@ -75,8 +75,15 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         A_t_ = A.dimshuffle((1, 0))
         A_t = A_t_ + prev_res
 
+        # original logadd from Collobert
         #log_added = T.log(T.exp(A_t).sum(axis=1))
+
+        # dummy approximation
         log_added = A_t.max(axis=1)
+
+        # more sophisticated approximation
+        # TODO where does it come from?
+        #log_added = A_t.max(axis=1) + T.log((A_t + 1e-4 - A_t.max(axis=1)).sum(axis=1))
 
         new_res = log_added + tagger_out
         return new_res
