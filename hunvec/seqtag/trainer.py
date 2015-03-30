@@ -103,7 +103,6 @@ def main():
     wt = res[1]
     wt.create_algorithm(d, args.model_path)
     wt.train()
-    load_dataset()
 
 
 if __name__ == "__main__":
