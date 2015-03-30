@@ -62,8 +62,7 @@ class SequenceTaggerNetwork(Model):
 
         self.tagger = WordTaggerNetwork(self.vocab_size, self.window_size,
                                         self.total_feats, self.feat_num,
-                                        hdims, edim, fedim, self.n_classes,
-                                        lr_scale)
+                                        hdims, edim, fedim, self.n_classes)
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
