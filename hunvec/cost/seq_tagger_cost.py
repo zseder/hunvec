@@ -78,12 +78,10 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
         # original logadd from Collobert
         #log_added = T.log(T.exp(A_t).sum(axis=1))
 
-        # dummy approximation
-        log_added = A_t.max(axis=1)
-
-        # more sophisticated approximation
-        # TODO where does it come from?
-        log_added = A_t.max(axis=1) + T.log(T.exp(A_t - A_t.max(axis=1).reshape((A_t.shape[0], 1))).sum(axis=1))
+        # numerrically stable version
+        mx = A_t.max(axis=1)
+        log_added = mx + T.log(T.exp(
+            A_t - mx.reshape((A_t.shape[0], 1))).sum(axis=1))
 
         new_res = log_added + tagger_out
         return new_res
