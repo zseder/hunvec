@@ -83,7 +83,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
         # more sophisticated approximation
         # TODO where does it come from?
-        #log_added = A_t.max(axis=1) + T.log(T.exp(A_t - A_t.max(axis=1)).sum(axis=1))
+        log_added = A_t.max(axis=1) + T.log(T.exp(A_t - A_t.max(axis=1).reshape((A_t.shape[0], 1))).sum(axis=1))
 
         new_res = log_added + tagger_out
         return new_res
