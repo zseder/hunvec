@@ -14,7 +14,7 @@ from pylearn2.termination_criteria import MonitorBased, And, EpochCounter
 from pylearn2.train import Train
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.training_algorithms import learning_rule
-from pylearn2.training_algorithms.sgd import SGD, LinearDecay
+from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
@@ -26,7 +26,8 @@ from hunvec.utils.fscore import FScCounter
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
                  edim=None, hdims=None, fedim=None,
-                 max_epochs=100, use_momentum=False, lr=.01, lr_decay=.1,
+                 max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=.1,
+                 lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None):
         super(SequenceTaggerNetwork, self).__init__()
@@ -61,7 +62,8 @@ class SequenceTaggerNetwork(Model):
 
         self.tagger = WordTaggerNetwork(self.vocab_size, self.window_size,
                                         self.total_feats, self.feat_num,
-                                        hdims, edim, fedim, self.n_classes)
+                                        hdims, edim, fedim, self.n_classes,
+                                        lr_scale)
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -69,7 +71,9 @@ class SequenceTaggerNetwork(Model):
         self.A = sharedX(A_value, name='A')
         self.use_momentum = use_momentum
         self.lr = lr
-        self.lr_decay = lr_decay
+        self.lr_lin_decay = lr_lin_decay
+        self.lr_monitor_decay = lr_monitor_decay
+        self.lr_scale = lr_scale
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
         self.dropout_params = dropout_params
@@ -130,6 +134,8 @@ class SequenceTaggerNetwork(Model):
 
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
+        if not self.lr_scale:
+            return {}
         d = self.tagger.get_lr_scalers()
         d[self.A] = 1. / self.n_classes
         return d
@@ -142,16 +148,18 @@ class SequenceTaggerNetwork(Model):
         initial_momentum = .5
         final_momentum = .99
         start = 1
-        saturate = self.max_epochs / 3
+        saturate = self.max_epochs
         self.momentum_adjustor = learning_rule.MomentumAdjustor(
             final_momentum, start, saturate)
         self.momentum_rule = learning_rule.Momentum(initial_momentum,
                                                     nesterov_momentum=True)
 
-        self.learning_rate_adjustor = LinearDecay(
-            start, saturate * 10000, self.lr_decay)
-        self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-            low_trigger=1., shrink_amt=.9, channel_name='train_objective')
+        if self.lr_lin_decay:
+            self.learning_rate_adjustor = LinearDecayOverEpoch(
+                start, saturate, self.lr_lin_decay)
+        elif self.lr_monitor_decay:
+            self.learning_rate_adjustor = MonitorBasedLRAdjuster(
+                low_trigger=1., shrink_amt=.9, channel_name='train_objective')
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data

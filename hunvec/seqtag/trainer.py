@@ -29,8 +29,14 @@ def create_argparser():
                            help='typical values are 1e-5, 1e-4')
     argparser.add_argument('--use_momentum', action='store_true'),
     argparser.add_argument('--lr', type=float, help='learning rate')
-    argparser.add_argument('--lr_decay', type=float,
+    argparser.add_argument('--lr_lin_decay', type=float,
                            help='decrease ratio over time on learning rate')
+    argparser.add_argument('--lr_scale', action='store_true',
+                           help='decrease per-layer learning rate' +
+                           ' based on its sizes')
+    argparser.add_argument('--lr_monitor_decay', action='store_true',
+                           help='decrease lr when no improvement on training' +
+                           ' (used only when no lr_lin_decay)')
     argparser.add_argument('--valid_stop', action='store_true',
                            help='don\'t use valid data to decide when to stop')
     argparser.add_argument('--dropout_params', action=CSL2L,
