@@ -99,7 +99,9 @@ class SequenceTaggerNetwork(Model):
         d['max_epochs'] = self.max_epochs
         d['use_momentum'] = self.use_momentum
         d['lr'] = self.lr
-        d['lr_decay'] = self.lr_decay
+        d['lr_lin_decay'] = self.lr_lin_decay
+        d['lr_monitor_decay'] = self.lr_monitor_decay
+        d['lr_scale'] = self.lr_scale
         d['valid_stop'] = self.valid_stop
         d['reg_factors'] = self.reg_factors
         d['dropout'] = self.dropout
