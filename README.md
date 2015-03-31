@@ -28,3 +28,25 @@ one should use
 if batch_size == 1 or batch_size is None:
     return tensor.matrix(name=name, dtype=self._dtype)
 ~~~~
+
+## Sample calls:
+
+Preparing dataset with train/test/devel split:
+~~~~
+python hunvec/datasets/word_tagger_dataset.py --test_file data/eng.bie1.test --valid_file data/eng.bie1.devel -w 3 data/eng.bie1.train preprocessed_dataset.pickle
+~~~~
+
+For training and continuing a trained model with a given dataset:
+~~~~
+python hunvec/seqtag/trainer.py --epochs 100 --regularization 1e-2 --valid_stop --embedding 100 --hidden 200 --lr .1 --lr_lin_decay .1 dataset.pickle model
+~~~~
+
+For evaluation:
+~~~~
+python hunvec/seqtag/eval.py --fscore --sets test,valid,train dataset model
+~~~~
+
+For tagging:
+~~~~
+cut -f1 data/eng.bie1.train | python hunvec/seqtag/tagger.py model > tagged
+~~~~
