@@ -73,8 +73,7 @@ def init_network(args, dataset, corpus):
     if args.lr_lin_decay:
         wt.lr_lin_decay = args.lr_lin_decay
     if args.lr_monitor_decay:
-        if not wt.lr_lin_decay:
-            wt.lr_monitor_decay = args.lr_monitor_decay
+        wt.lr_monitor_decay = args.lr_monitor_decay
     if args.lr_scale:
         wt.lr_scale = args.lr_scale
     if args.valid_stop:
