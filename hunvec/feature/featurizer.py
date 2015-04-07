@@ -38,18 +38,20 @@ def gazetteer_feat(x, name='', set_=([])):
     else:
         return '0_{0}'.format(name)
 
-gaz_fns = {'languages': '/home/pajkossy/git/hunvec/gaz2/languages.txt',
-           'religion': '/home/pajkossy/git/hunvec/gaz2/religion.txt',
-           'ethnic': '/home/pajkossy/git/hunvec/gaz2/ethnic.txt',
-           'nationality': '/home/pajkossy/git/hunvec/gaz2/nationality.txt',
-           'capital': '/home/pajkossy/git/hunvec/gaz2/capital.txt',
-           'city': '/home/pajkossy/git/hunvec/gaz2/city.txt',
-           'country': '/home/pajkossy/git/hunvec/gaz2/countries.txt',
-           'port': '/home/pajkossy/git/hunvec/gaz2/ports.txt',
-           'region': '/home/pajkossy/git/hunvec/gaz2/region.txt',
-           'org': '/home/pajkossy/git/hunvec/gaz2/org.txt',
-           'party': '/home/pajkossy/git/hunvec/gaz2/party.txt',
-           'person': '/home/pajkossy/git/hunvec/gaz2/per_all'}
+gaz_fns = {
+    'languages': '/home/eszter/CIA_lists/misc/languages.txt',
+    'religion': '/home/eszter/CIA_lists/misc/religion.txt',
+    'ethnic': '/home/eszter/CIA_lists/misc/ethnic.txt',
+    'nationality': '/home/eszter/CIA_lists/misc/nationality.txt',
+    'capital': '/home/eszter/CIA_lists/loc/capital.txt',
+    'city': '/home/eszter/CIA_lists/loc/city.txt',
+    'country': '/home/eszter/CIA_lists/loc/countries.txt',
+    'port': '/home/eszter/CIA_lists/loc/ports.txt',
+    'region': '/home/eszter/CIA_lists/loc/region.txt',
+    'org': '/home/eszter/CIA_lists/org/org.txt',
+    'party': '/home/eszter/CIA_lists/org/party.txt',
+    'person': '/home/eszter/freebase_lists/pers/per_all'
+}
 
 
 class Featurizer(object):
