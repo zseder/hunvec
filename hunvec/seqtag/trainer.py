@@ -29,8 +29,14 @@ def create_argparser():
                            help='typical values are 1e-5, 1e-4')
     argparser.add_argument('--use_momentum', action='store_true'),
     argparser.add_argument('--lr', type=float, help='learning rate')
-    argparser.add_argument('--lr_decay', type=float,
+    argparser.add_argument('--lr_lin_decay', type=float,
                            help='decrease ratio over time on learning rate')
+    argparser.add_argument('--lr_scale', action='store_true',
+                           help='decrease per-layer learning rate' +
+                           ' based on its sizes')
+    argparser.add_argument('--lr_monitor_decay', action='store_true',
+                           help='decrease lr when no improvement on training' +
+                           ' (used only when no lr_lin_decay)')
     argparser.add_argument('--valid_stop', action='store_true',
                            help='don\'t use valid data to decide when to stop')
     argparser.add_argument('--dropout_params', action=CSL2L,
@@ -64,8 +70,13 @@ def init_network(args, dataset, corpus):
         wt.use_momentum = args.use_momentum
     if args.lr:
         wt.lr = args.lr
-    if args.lr_decay:
-        wt.lr_decay = args.lr_decay
+    if args.lr_lin_decay:
+        wt.lr_lin_decay = args.lr_lin_decay
+    if args.lr_monitor_decay:
+        if not wt.lr_lin_decay:
+            wt.lr_monitor_decay = args.lr_monitor_decay
+    if args.lr_scale:
+        wt.lr_scale = args.lr_scale
     if args.valid_stop:
         wt.valid_stop = args.valid_stop
     if args.regularization:
@@ -92,7 +103,6 @@ def main():
     wt = res[1]
     wt.create_algorithm(d, args.model_path)
     wt.train()
-    load_dataset()
 
 
 if __name__ == "__main__":
