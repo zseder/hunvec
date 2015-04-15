@@ -155,12 +155,12 @@ class SequenceTaggerNetwork(Model):
         self.momentum_rule = learning_rule.Momentum(initial_momentum,
                                                     nesterov_momentum=True)
 
-        if self.lr_lin_decay:
-            self.learning_rate_adjustor = LinearDecayOverEpoch(
-                start, saturate, self.lr_lin_decay)
-        elif self.lr_monitor_decay:
+        if self.lr_monitor_decay:
             self.learning_rate_adjustor = MonitorBasedLRAdjuster(
                 low_trigger=1., shrink_amt=.9, channel_name='train_objective')
+        elif self.lr_lin_decay:
+            self.learning_rate_adjustor = LinearDecayOverEpoch(
+                start, saturate, self.lr_lin_decay)
 
     def create_algorithm(self, data, save_best_path=None):
         self.dataset = data
