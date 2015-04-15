@@ -121,7 +121,7 @@ class SequenceTaggerNetwork(Model):
         if input_include_probs is None:
             input_include_probs = {'input': 1.0}
         if self.dropout_params is not None:
-            if len(self.dropout_params) == len(self.hdims) + 1:
+            if len(self.dropout_params) == len(self.tagger.layers) - 1:
                 input_include_probs['tagger_out'] = self.dropout_params[-1]
                 input_scales['tagger_out'] = 1.0/self.dropout_params[-1]
                 for i, p in enumerate(self.dropout_params[:-1]):
