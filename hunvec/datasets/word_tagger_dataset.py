@@ -111,7 +111,7 @@ class WordTaggerDataset(Dataset):
         for feat_i in xrange(window_size - 1, len(feats) - window_size + 1):
             # combine together features for indices
             fs = []
-            r = range(word_i - window_size + 1, word_i + window_size)
+            r = range(feat_i - window_size + 1, feat_i + window_size)
             for mul, i in enumerate(r):
                 local_feats = feats[i]
                 if local_feats == pad_num:
@@ -121,6 +121,7 @@ class WordTaggerDataset(Dataset):
                 local_feats = list(local_feats)
                 for feat_i in xrange(len(local_feats)):
                     local_feats[feat_i] += mul * featurizer.total
+
                 fs += local_feats
             new_feats.append(fs)
         new_feats = numpy.array(new_feats)
