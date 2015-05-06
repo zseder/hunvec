@@ -47,12 +47,13 @@ class WordTaggerDataset(Dataset):
         self.X2 = X[1]
         self.y = y
         self.vocab_size = vocab_size
-        self.window_size = (window_size * 2 - 1)
-        self.total_feats = total_feats * self.window_size
-        self.feat_num = feat_num * self.window_size
+        self.window_size = window_size
+        ws = (window_size * 2 + 1)
+        self.total_feats = total_feats * ws
+        self.feat_num = feat_num * ws 
         self.n_classes = n_classes
         space = CompositeSpace((
-            IndexSequenceSpace(max_labels=vocab_size, dim=self.window_size),
+            IndexSequenceSpace(max_labels=vocab_size, dim=ws),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
             IndexSequenceSpace(dim=1, max_labels=n_classes)
@@ -94,24 +95,25 @@ class WordTaggerDataset(Dataset):
     @staticmethod
     def process_sentence(words, features, window_size, featurizer, pad_num=-2,
                          tags=None):
-        pad = [pad_num] * (window_size - 1)
+        pad = [pad_num] * window_size
+        #pad = [pad_num] * (window_size - 1)
 
         # process words
         new_words = []
         words = pad + words + pad
-        for word_i in xrange(window_size - 1, len(words) - window_size + 1):
-            window_words = words[word_i - window_size + 1:
-                                 word_i + window_size]
+        for word_i in xrange(window_size, len(words) - window_size):
+            window_words = words[word_i - window_size:
+                                 word_i + window_size + 1]
             new_words.append(window_words)
         new_words = numpy.array(new_words)
 
         # process features
         new_feats = []
         feats = pad + features + pad
-        for feat_i in xrange(window_size - 1, len(feats) - window_size + 1):
+        for feat_i in xrange(window_size, len(feats) - window_size):
             # combine together features for indices
             fs = []
-            r = range(feat_i - window_size + 1, feat_i + window_size)
+            r = range(feat_i - window_size, feat_i + window_size + 1)
             for mul, i in enumerate(r):
                 local_feats = feats[i]
                 if local_feats == pad_num:
@@ -160,7 +162,7 @@ class WordTaggerDataset(Dataset):
 
 
 def init_presplitted_corpus(args):
-    ws = args.window + 1
+    ws = args.window
     train_fn = args.train_file
     valid_fn = args.valid_file
     test_fn = args.test_file
@@ -195,7 +197,7 @@ def init_presplitted_corpus(args):
 
 
 def init_split_corpus(args):
-    ws = args.window + 1
+    ws = args.window
     featurizer = Featurizer()
     c = TaggedCorpus(args.train_file, featurizer)
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
