@@ -25,8 +25,9 @@ class WordTaggerNetwork(MLP):
 
     def create_network(self):
         # words and features
+        ws = (self.ws * 2 + 1)
         input_space = CompositeSpace([
-            IndexSpace(max_labels=self.vocab_size, dim=self.ws),
+            IndexSpace(max_labels=self.vocab_size, dim=ws),
             IndexSpace(max_labels=self.total_feats, dim=self.feat_num)
         ])
 
