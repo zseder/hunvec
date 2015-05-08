@@ -217,7 +217,7 @@ class SequenceTaggerNetwork(Model):
         self.end = self.A.get_value()[1]
         self.A_value = self.A.get_value()[2:]
 
-    def tag_sen(self, words, feats):
+    def tag_sen(self, words, feats, debug=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
 
@@ -225,7 +225,9 @@ class SequenceTaggerNetwork(Model):
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
-        return numpy.array([[e] for e in best_path]), tagger_out
+        if debug:
+            return numpy.array([[e] for e in best_path]), tagger_out
+        return numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
