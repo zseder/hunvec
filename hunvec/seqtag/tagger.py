@@ -47,7 +47,7 @@ def tag(args):
     sens = process_sentences(wt, get_sens(input_))
     i2t = [t for t, i in sorted(wt.t2i.items(), key=lambda x: x[1])]
     for words, feats, orig_words in sens:
-        tags, tagger_out = wt.tag_sen(words, feats)
+        tags, tagger_out = wt.tag_sen(words, feats, args.debug)
         for w, t, to in izip(orig_words, tags, tagger_out):
             t = i2t[t]
             output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
