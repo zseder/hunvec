@@ -250,17 +250,9 @@ class SequenceTaggerNetwork(Model):
             m = Word2Vec.load_word2vec_format(embedding_init, binary=False)
             edim = m.layer1_size
         except UnicodeDecodeError:
-            import sys
-            sys.stderr.write('253\n{0}'.format(embedding_init))
-            try:
-                m = Word2Vec.load_word2vec_format(embedding_init, binary=True)
-                edim = m.layer1_size
-            except UnicodeDecodeError:
-                sys.stderr.write('259\n')
-                m = Word2Vec.load(embedding_init)
-                edim = m.layer1_size
+            m = Word2Vec.load_word2vec_format(embedding_init, binary=True)
+            edim = m.layer1_size
         except ValueError:
-            print 258
             # glove model
             m = {}
             if embedding_init.endswith('gz'):

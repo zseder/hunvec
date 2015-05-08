@@ -39,18 +39,18 @@ def gazetteer_feat(x, name='', set_=([])):
         return '0_{0}'.format(name)
 
 gaz_fns = {
-    'languages': '/home/pajkossy/gazeetters/languages.txt',
-    'religion': '/home/pajkossy/gazeetters/religion.txt',
-    'ethnic': '/home/pajkossy/gazeetters/ethnic.txt',
-    'nationality': '/home/pajkossy/gazeetters/nationality.txt',
-    'capital': '/home/pajkossy/gazeetters/capital.txt',
-    'city': '/home/pajkossy/gazeetters/city.txt',
-    'country': '/home/pajkossy/gazeetters/countries.txt',
-    'port': '/home/pajkossy/gazeetters/ports.txt',
-    'region': '/home/pajkossy/gazeetters/region.txt',
-    'org': '/home/pajkossy/gazeetters/org.txt',
-    'party': '/home/pajkossy/gazeetters/party.txt',
-    'person': '/home/pajkossy/gazeetters/per_all'
+    'languages': '/home/eszter/CIA_lists/misc/languages.txt',
+    'religion': '/home/eszter/CIA_lists/misc/religion.txt',
+    'ethnic': '/home/eszter/CIA_lists/misc/ethnic.txt',
+    'nationality': '/home/eszter/CIA_lists/misc/nationality.txt',
+    'capital': '/home/eszter/CIA_lists/loc/capital.txt',
+    'city': '/home/eszter/CIA_lists/loc/city.txt',
+    'country': '/home/eszter/CIA_lists/loc/countries.txt',
+    'port': '/home/eszter/CIA_lists/loc/ports.txt',
+    'region': '/home/eszter/CIA_lists/loc/region.txt',
+    'org': '/home/eszter/CIA_lists/org/org.txt',
+    'party': '/home/eszter/CIA_lists/org/party.txt',
+    'person': '/home/eszter/freebase_lists/pers/per_all'
 }
 
 
