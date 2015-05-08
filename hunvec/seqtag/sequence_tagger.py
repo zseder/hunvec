@@ -225,7 +225,7 @@ class SequenceTaggerNetwork(Model):
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
-        return numpy.array([[e] for e in best_path])
+        return numpy.array([[e] for e in best_path]), tagger_out
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
@@ -250,8 +250,13 @@ class SequenceTaggerNetwork(Model):
             m = Word2Vec.load_word2vec_format(embedding_init, binary=False)
             edim = m.layer1_size
         except UnicodeDecodeError:
-            m = Word2Vec.load_word2vec_format(embedding_init, binary=True)
-            edim = m.layer1_size
+            try:
+                m = Word2Vec.load_word2vec_format(embedding_init, binary=True)
+                edim = m.layer1_size
+            except UnicodeDecodeError:
+                # not in word2vec format
+                m = Word2Vec.load(embedding_init)
+                edim = m.layer1_size
         except ValueError:
             # glove model
             m = {}
