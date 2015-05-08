@@ -2,6 +2,7 @@ import sys
 import argparse
 from itertools import izip
 
+from numpy import argsort, sort
 from pylearn2.utils import serial
 
 from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
@@ -12,6 +13,7 @@ def create_argparser():
     argparser.add_argument('model')
     argparser.add_argument('--input', dest='input_')
     argparser.add_argument('--output', dest='output')
+    argparser.add_argument('--debug', action='store_true')
     return argparser.parse_args()
 
 
@@ -45,10 +47,18 @@ def tag(args):
     sens = process_sentences(wt, get_sens(input_))
     i2t = [t for t, i in sorted(wt.t2i.items(), key=lambda x: x[1])]
     for words, feats, orig_words in sens:
-        tags = wt.tag_sen(words, feats)
-        for w, t in izip(orig_words, tags):
+        tags, tagger_out = wt.tag_sen(words, feats, args.debug)
+        for w, t, to in izip(orig_words, tags, tagger_out):
             t = i2t[t]
             output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
+            if args.debug:
+                tags = [i2t[i] for i in argsort(-to)][:5]
+                probs = sorted(to, reverse = True)[:5]
+                
+                output.write('\t'.join([' '.join([tag.lower(), 
+                    str(round(prob, 4))]) 
+                    for tag, prob in zip(tags, probs)]))
+                output.write('\n')
         output.write('\n')
 
 
