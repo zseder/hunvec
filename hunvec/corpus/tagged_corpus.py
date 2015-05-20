@@ -1,42 +1,18 @@
-class TaggedCorpus(object):
+from hunvec.corpus.raw_corpus import RawCorpus
+
+class TaggedCorpus(RawCorpus):
+
     def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
-                 use_unknown=False):
-        self.fn = fn
-        self.featurizer = featurizer
-        self.use_unknown = use_unknown
-        if featurizer is not None:
-            self.featurizer.preprocess_corpus(self.read(pre=True))
+            use_unknown=False):
+        RawCorpus.__init__(self, fn, featurizer, w2i, t2i, 
+                use_unknown)
 
-        self.unk = -1
-        self.w2i = ({} if w2i is None else w2i)
-        self.t2i = ({} if t2i is None else t2i)
-
-    def add_features(self, sen):
-        new_sen = [[w, t, self.featurizer.featurize(w)] for w, t in sen]
-        return new_sen
+    def add_ints(self, sen):
+        RawCorpus.add_ints(self, sen)
+        for i in xrange(len(sen)):
+            new_ti = (self.unk if self.use_unknown else len(self.t2i))
+            sen[i][1] = self.t2i.setdefault(sen[i][1], new_ti)
 
     def read(self, pre=False):
-        s = []
-        for l in open(self.fn):
-            le = l.strip().split("\t")
-            if len(le) == 2:
-                w, pos = le[0], le[1]
-                s.append([w, pos])
-            else:
-                if not pre:
-                    s = self.add_features(s)
-                    self.turn_to_ints(s)
-                yield s
-                s = []
-        if len(s) > 0:
-            if not pre:
-                s = self.add_features(s)
-                self.turn_to_ints(s)
+        for s in RawCorpus.read(self, pre, needed_fields=[0, 1]):
             yield s
-
-    def turn_to_ints(self, sen):
-        for i in xrange(len(sen)):
-            new_wi = (self.unk if self.use_unknown else len(self.w2i))
-            new_ti = (self.unk if self.use_unknown else len(self.t2i))
-            sen[i][0] = self.w2i.setdefault(sen[i][0].lower(), new_wi)
-            sen[i][1] = self.t2i.setdefault(sen[i][1], new_ti)

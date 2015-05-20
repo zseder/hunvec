@@ -143,7 +143,7 @@ class WordTaggerDataset(Dataset):
         # include the word itself
         vocab, classes = set(), set()
         for sen in c.read():
-            words, tags, features = [list(t) for t in zip(*sen)]
+            words, tags, features, _ = [list(t) for t in zip(*sen)]
 
             res = WordTaggerDataset.process_sentence(
                 words, features, window_size, c.featurizer, pad_num, tags)
