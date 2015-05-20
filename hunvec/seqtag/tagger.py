@@ -30,19 +30,22 @@ def get_sens(f):
 def tag(args):
     wt = serial.load(args.model)
     # read input from stdin sentence by sentence
-    tc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i)
-    print tc
+    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i, 
+            use_unknown=True)
     output = (open(args.output, 'w') if args.output is not None
               else sys.stdout)
     i2t = [t for t, i in sorted(wt.t2i.items(), key=lambda x: x[1])]
-    for sen in tc.read():
-        
-        words, feats, orig_words = [list(t) for t in zip(*sen)]
-        print words, feats, orig_words
-        tags, tagger_out = wt.tag_sen(words, feats, args.debug)
+    for sen in rc.read():
+        w, f, orig_words = [list(t) for t in zip(*sen)]
+        window_words, window_feats = WordTaggerDataset.process_sentence(
+                w, f, wt.window_size, wt.featurizer)
+        if args.debug:
+            tags, tagger_out = wt.tag_sen(window_words, window_feats, args.debug)
+        else:
+            tags = wt.tag_sen(window_words, window_feats, args.debug)
         for w, t, to in izip(orig_words, tags, tagger_out):
             t = i2t[t]
-            output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
+            output.write('{0}\t{1}\n'.format(w, t))
             if args.debug:
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
