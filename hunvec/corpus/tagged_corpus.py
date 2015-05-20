@@ -1,3 +1,5 @@
+from hunvec.corpus.raw_corpus import RawCorpus
+
 class TaggedCorpus(RawCorpus):
 
     def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
@@ -7,7 +9,6 @@ class TaggedCorpus(RawCorpus):
 
     def add_ints(self, sen):
         RawCorpus.add_ints(self, sen)
-        print sen
         for i in xrange(len(sen)):
             new_ti = (self.unk if self.use_unknown else len(self.t2i))
             sen[i][1] = self.t2i.setdefault(sen[i][1], new_ti)

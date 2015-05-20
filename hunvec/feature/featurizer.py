@@ -90,7 +90,7 @@ class Featurizer(object):
         for sentence in corpus:
             for word in sentence:
                 for i, feat in enumerate(self.feats):
-                    w_feat = feat(word)
+                    w_feat = feat(word[0])
                     if w_feat is None:
                         continue
                     feature_counters[i][w_feat] += 1
