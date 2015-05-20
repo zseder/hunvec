@@ -39,21 +39,23 @@ def tag(args):
         w, f, orig_words = [list(t) for t in zip(*sen)]
         window_words, window_feats = WordTaggerDataset.process_sentence(
                 w, f, wt.window_size, wt.featurizer)
+        result = wt.tag_sen(window_words, window_feats, args.debug)
         if args.debug:
-            tags, tagger_out = wt.tag_sen(window_words, window_feats, args.debug)
-        else:
-            tags = wt.tag_sen(window_words, window_feats, args.debug)
-        for w, t, to in izip(orig_words, tags, tagger_out):
-            t = i2t[t]
-            output.write('{0}\t{1}\n'.format(w, t))
-            if args.debug:
+            tags, tagger_out = result
+            for w, t, to in izip(orig_words, tags, tagger_out):
+                t = i2t[t]
+                output.write('{0}\t{1}\n'.format(w, t))
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
-                
                 output.write('\t'.join([' '.join([tag.lower(),
                     str(round(prob, 4))]) 
                     for tag, prob in zip(tags, probs)]))
                 output.write('\n')
+        else:
+            tags = result
+            for w, t in izip(orig_words, tags):
+                t = i2t[t]
+                output.write('{0}\t{1}\n'.format(w, t))
         output.write('\n')
 
 
