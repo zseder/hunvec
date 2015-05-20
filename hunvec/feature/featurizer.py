@@ -88,7 +88,7 @@ class Featurizer(object):
 
         feature_counters = [defaultdict(int) for _ in self.feats]
         for sentence in corpus:
-            for word, _ in sentence:
+            for word in sentence:
                 for i, feat in enumerate(self.feats):
                     w_feat = feat(word)
                     if w_feat is None:

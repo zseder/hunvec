@@ -6,7 +6,7 @@ from numpy import argsort, sort
 from pylearn2.utils import serial
 
 from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
-
+from hunvec.corpus.tagged_corpus import RawCorpus
 
 def create_argparser():
     argparser = argparse.ArgumentParser()
@@ -27,26 +27,18 @@ def get_sens(f):
             yield sen
             sen = []
 
-
-def process_sentences(wt, sentences):
-    for sen in sentences:
-        sen = [(w, wt.featurizer.featurize(w)) for w in sen]
-        words_, feats_ = [list(l) for l in zip(*sen)]
-        iwords = [wt.w2i.get(w, -1) for w in words_]
-        words, features = WordTaggerDataset.process_sentence(
-            iwords, feats_, wt.window_size, wt.featurizer)
-        yield words, features, words_
-
-
 def tag(args):
     wt = serial.load(args.model)
     # read input from stdin sentence by sentence
-    input_ = (open(args.input_) if args.input_ is not None else sys.stdin)
+    tc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i)
+    print tc
     output = (open(args.output, 'w') if args.output is not None
               else sys.stdout)
-    sens = process_sentences(wt, get_sens(input_))
     i2t = [t for t, i in sorted(wt.t2i.items(), key=lambda x: x[1])]
-    for words, feats, orig_words in sens:
+    for sen in tc.read():
+        
+        words, feats, orig_words = [list(t) for t in zip(*sen)]
+        print words, feats, orig_words
         tags, tagger_out = wt.tag_sen(words, feats, args.debug)
         for w, t, to in izip(orig_words, tags, tagger_out):
             t = i2t[t]
