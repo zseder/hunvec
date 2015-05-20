@@ -2,6 +2,7 @@ import functools
 from itertools import izip
 
 import numpy
+from scipy.spatial.distance import cdist
 import gzip
 
 import theano
@@ -75,6 +76,7 @@ class SequenceTaggerNetwork(Model):
         self.lr_scale = lr_scale
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
+        self.close_cache = {}
         self.dropout_params = dropout_params
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
@@ -220,13 +222,26 @@ class SequenceTaggerNetwork(Model):
     def tag_sen(self, words, feats, debug=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
-
         y = self.f(words, feats)
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
         if debug:
-            return numpy.array([[e] for e in best_path]), tagger_out
+            if not hasattr(self, 'close_cache'):
+                self.close_cache = {}
+            close_wds = []
+            for w in words:
+                w_  = w[self.window_size]
+                if w_ in self.close_cache:
+                    close_wds.append(self.close_cache[w_])
+                else:
+                    word_vectors = self.tagger.layers[0].layers[0].\
+                            get_params()[0].get_value()
+                    close_i = cdist(numpy.array([word_vectors[w_]]), word_vectors)
+                    closest = numpy.argsort(close_i[0])[:10]
+                    close_wds.append(closest)
+                    self.close_cache[w_] = closest
+            return numpy.array([[e] for e in best_path]), tagger_out, close_wds
         return numpy.array([[e] for e in best_path])
 
     def get_score(self, dataset, mode='pwp'):
