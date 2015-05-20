@@ -26,11 +26,11 @@ class RawCorpus(object):
                 if not pre:
                     s = self.add_features(s)
                     self.add_ints(s)
-                yield s    
+                yield s
                 s = []
                 continue
             le = l.strip().split("\t")
-            s.append([le[i] for i in filter(lambda x:x in needed_fields, 
+            s.append([le[i] for i in filter(lambda x:x in needed_fields,
                 xrange(len(le)))])
         if len(s) > 0:
             if not pre:

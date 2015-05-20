@@ -30,7 +30,7 @@ def get_sens(f):
 def tag(args):
     wt = serial.load(args.model)
     # read input from stdin sentence by sentence
-    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i, 
+    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i,
             use_unknown=True)
     output = (open(args.output, 'w') if args.output is not None
               else sys.stdout)
@@ -50,7 +50,7 @@ def tag(args):
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
                 
-                output.write('\t'.join([' '.join([tag.lower(), 
+                output.write('\t'.join([' '.join([tag.lower(),
                     str(round(prob, 4))]) 
                     for tag, prob in zip(tags, probs)]))
                 output.write('\n')

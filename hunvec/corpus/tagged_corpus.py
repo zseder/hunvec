@@ -11,7 +11,7 @@ class TaggedCorpus(RawCorpus):
         for i in xrange(len(sen)):
             new_ti = (self.unk if self.use_unknown else len(self.t2i))
             sen[i][1] = self.t2i.setdefault(sen[i][1], new_ti)
-   
+
     def read(self, pre=False):
         for s in RawCorpus.read(self, pre, needed_fields=[0, 1]):
             yield s
