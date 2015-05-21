@@ -35,7 +35,7 @@ def tag(args):
         i2w = dict([(v, k) for k, v in wt.w2i.iteritems()])
         #range_ = 
     # read input from stdin sentence by sentence
-    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i,
+    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i,
             use_unknown=True)
     output = (open(args.output, 'w') if args.output is not None
               else sys.stdout)
@@ -52,12 +52,12 @@ def tag(args):
                 output.write('{0}\t{1}\n'.format(w, t))
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
-                output.write('\t'.join([' '.join([tag.lower(),
+                output.write(u'\t'.join([' '.join([tag.lower(),
                     str(round(prob, 4))]) 
                     for tag, prob in zip(tags, probs)]))
                 output.write('\n')
                 close = [i2w[i] for i in list(cl)]
-                output.write('\t'.join(close))
+                output.write(repr(close))
                 output.write('\n')
                 string_f_cl = {}
                 for k in f_cl:
