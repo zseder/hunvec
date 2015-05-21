@@ -14,6 +14,18 @@ from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.feature.featurizer import Featurizer
 
 
+def read_vocab(fn, lower=True, decoder='utf-8'):
+    d = {}
+    for l in open(fn):
+        w = l.strip()
+        if decoder:
+            w = w.decode(decoder)
+        if lower:
+            w = w.lower()
+        d[w] = len(d)
+    return d
+
+
 def create_splitted_datasets(wa, fa, ya, ratios,
                              vocab_size, window_size, total_feats, feat_num,
                              n_classes):
@@ -167,7 +179,8 @@ def init_presplitted_corpus(args):
     valid_fn = args.valid_file
     test_fn = args.test_file
     featurizer = Featurizer()
-    train_c = TaggedCorpus(train_fn, featurizer)
+    w2i = (read_vocab(args.vocab) if args.vocab else None)
+    train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i)
     valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
                            t2i=train_c.t2i)
     test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
@@ -199,7 +212,8 @@ def init_presplitted_corpus(args):
 def init_split_corpus(args):
     ws = args.window
     featurizer = Featurizer()
-    c = TaggedCorpus(args.train_file, featurizer)
+    w2i = (read_vocab(args.vocab) if args.vocab else None)
+    c = TaggedCorpus(args.train_file, featurizer, w2i=w2i)
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_words, n_classes = len(vocab), len(classes)
@@ -225,6 +239,11 @@ def create_argparser():
                            ' training file is given')
     argparser.add_argument('-w', '--window', default=5, type=int,
                            dest='window')
+    argparser.add_argument('--vocab', dest='vocab', help='add vocab file to ' +
+                           'predefine what words will be used. Useful if ' +
+                           'later external word vectors will be used, so ' +
+                           'network needs to be prepared for words that are' +
+                           ' not in the training data')
     return argparser.parse_args()
 
 
