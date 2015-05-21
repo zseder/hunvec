@@ -117,7 +117,7 @@ class WordTaggerDataset(Dataset):
             for mul, i in enumerate(r):
                 local_feats = feats[i]
                 if local_feats == pad_num:
-                    local_feats = featurizer.fake_features()
+                    local_feats = featurizer.fake_features
 
                 # copy features to not change sentence data
                 local_feats = list(local_feats)
