@@ -1,6 +1,6 @@
 class RawCorpus(object):
     
-    def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
+    def __init__(self, fn, featurizer=None, w2i=None,
                  use_unknown=False):
         self.fn = fn
         self.featurizer = featurizer
@@ -10,7 +10,6 @@ class RawCorpus(object):
 
         self.unk = -1
         self.w2i = ({} if w2i is None else w2i)
-        self.t2i = ({} if t2i is None else t2i)
 
     def add_features(self, sen):
         new_sen = []
