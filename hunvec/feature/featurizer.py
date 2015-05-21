@@ -13,10 +13,11 @@ def case_feature(word):
 
 def suffix_ngram_feature(word, n=3, end_index=None):
     w2 = ("^" * n) + word.lower() + "$"
+    s = 'ngr_{}:'.format(end_index)
     if end_index is not None:
-        return w2[-n+end_index:end_index]
+        return s + w2[-n+end_index:end_index]
     else:
-        return w2[-n:]
+        return s + w2[-n:]
 snf = suffix_ngram_feature
 
 
@@ -34,9 +35,9 @@ def last_but_twos(x):
 
 def gazetteer_feat(x, name='', set_=([])):
     if x.lower() in set_:
-        return '1_{0}'.format(name)
+        return 'gaz_{0}:1'.format(name)
     else:
-        return '0_{0}'.format(name)
+        return 'gaz_{0}:0'.format(name)
 
 gaz_fns = {
     'languages': '/home/eszter/CIA_lists/misc/languages.txt',
@@ -102,34 +103,39 @@ class Featurizer(object):
             for feat, feat_c in feat_counts[feat_i].iteritems():
                 if feat_c >= min_count:
                     self.kept[feat_i][feat] = len(self.kept[feat_i])
+        self.build_final_data()
 
+    def build_final_data(self):
         # using k + 1 because of "else" or "fake" features (needed)
         self.total = sum(len(k) + 1 for k in self.kept)
-        self.feat_shifts = [0]
-        for k in self.kept[:-1]:
-            self.feat_shifts.append(len(k) + 1)
+
+        # list with fake features, needed for pads
+        self.fake_features = [len(self.kept[0])]
+
+        # reverse dict for easier printouts
+        self.i2f = [None] * self.total
+
+        for k in self.kept[0].iterkeys():
+            self.i2f[self.kept[0][k]] = k
+
+        # increasing values in dictionaries to have unique numbers for features
+        shift = 0
+        for i in xrange(1, len(self.kept)):
+            shift += len(self.kept[i-1]) + 1
+            for key in self.kept[i].keys():
+                self.i2f[self.kept[i][key] + shift] = key
+                self.kept[i][key] = self.kept[i][key] + shift
+            self.fake_features.append(
+                self.fake_features[-1] + len(self.kept[i]) + 1)
 
     def featurize(self, word):
         all_w_feats = []
         for feat_i, feat in enumerate(self.feats):
             f = feat(word)
             if f in self.kept[feat_i]:
-                loc = self.feat_shifts[feat_i] + self.kept[feat_i][f]
+                loc = self.kept[feat_i][f]
             else:
-                # not kept feature
-                if feat_i + 1 < len(self.feat_shifts):
-                    loc = self.feat_shifts[feat_i + 1] - 1
-                else:
-                    loc = self.total - 1
+                loc = self.fake_features[feat_i]
             all_w_feats.append(loc)
 
         return all_w_feats
-
-    def fake_features(self):
-        l = []
-        for fs in self.feat_shifts[1:]:
-            # the index before the shift index is the last (else) feature
-            l.append(fs - 1)
-        # else branch of last feature
-        l.append(self.total - 1)
-        return l
