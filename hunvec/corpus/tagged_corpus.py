@@ -4,8 +4,9 @@ class TaggedCorpus(RawCorpus):
 
     def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
             use_unknown=False):
-        RawCorpus.__init__(self, fn, featurizer, w2i, t2i, 
+        RawCorpus.__init__(self, fn, featurizer, w2i,
                 use_unknown)
+        self.t2i = ({} if t2i is None else t2i)
 
     def add_ints(self, sen):
         RawCorpus.add_ints(self, sen)
