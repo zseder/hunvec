@@ -226,23 +226,38 @@ class SequenceTaggerNetwork(Model):
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
+        
         if debug:
+            feat_range = range(self.featurizer.total*self.window_size, 
+                    self.featurizer.total*(self.window_size+1))
             if not hasattr(self, 'close_cache'):
                 self.close_cache = {}
+            if not hasattr(self, 'close_feat_cache'):
+                 self.close_feat_cache = {}
             close_wds = []
-            for w in words:
+            close_feats = []
+            for w, f in izip(words, feats):
                 w_  = w[self.window_size]
-                if w_ in self.close_cache:
-                    close_wds.append(self.close_cache[w_])
-                else:
-                    word_vectors = self.tagger.layers[0].layers[0].\
-                            get_params()[0].get_value()
-                    close_i = cdist(numpy.array([word_vectors[w_]]), word_vectors)
-                    closest = numpy.argsort(close_i[0])[:10]
-                    close_wds.append(closest)
-                    self.close_cache[w_] = closest
-            return numpy.array([[e] for e in best_path]), tagger_out, close_wds
+                vectors = self.tagger.layers[0].layers[0].get_params()[0].get_value()
+                close_words = self.get_close(self.close_cache, w_, vectors)
+                close_wds.append(close_words)
+                f_closests = {}
+                for f_ in f:
+                    vectors = self.tagger.layers[0].layers[1].get_params()[0].get_value()
+                    f_closests[f_] = self.get_close(self.close_feat_cache, f_, 
+                        vectors)
+                close_feats.append(f_closests)   
+            return numpy.array([[e] for e in best_path]), tagger_out, close_wds, close_feats    
         return numpy.array([[e] for e in best_path])
+
+    def get_close(self, cache, item, vectors):
+        if item in cache:
+            closests = cache[item]
+        else:
+            close_i = cdist(numpy.array([vectors[item]]), vectors)
+            closests = numpy.argsort(close_i[0])[:10]
+            cache[item] = closests
+        return closests          
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()

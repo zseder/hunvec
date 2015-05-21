@@ -33,6 +33,7 @@ def tag(args):
     if args.debug:
         vectors = wt.tagger.layers[0].layers[0].get_params()[0].get_value()
         i2w = dict([(v, k) for k, v in wt.w2i.iteritems()])
+        #range_ = 
     # read input from stdin sentence by sentence
     rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i,
             use_unknown=True)
@@ -45,8 +46,8 @@ def tag(args):
                 w, f, wt.window_size, wt.featurizer)
         result = wt.tag_sen(window_words, window_feats, args.debug)
         if args.debug:
-            tags, tagger_out, close_wds = result
-            for w, t, to, cl in izip(orig_words, tags, tagger_out, close_wds):
+            tags, tagger_out, close_wds, f_closests = result
+            for w, t, to, cl, f_cl in zip(orig_words, tags, tagger_out, close_wds, f_closests):
                 t = i2t[t]
                 output.write('{0}\t{1}\n'.format(w, t))
                 tags = [i2t[i] for i in argsort(-to)][:5]
@@ -55,15 +56,17 @@ def tag(args):
                     str(round(prob, 4))]) 
                     for tag, prob in zip(tags, probs)]))
                 output.write('\n')
-                close = [i2w[i] for i in cl]
+                close = [i2w[i] for i in list(cl)]
                 output.write('\t'.join(close))
+                output.write('\n')
+                print type(f_cl), f_cl.keys()
+                quit()
                 output.write('\n')
         else:
             tags = result
             for w, t in izip(orig_words, tags):
                 t = i2t[t]
                 output.write('{0}\t{1}\n'.format(w, t))
-#>>>>>>> tag_no_debug
         output.write('\n')
 
 
