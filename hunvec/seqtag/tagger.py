@@ -61,14 +61,18 @@ def tag(args):
                 output.write('\n')
                 string_f_cl = {}
                 for k in f_cl:
-                    shift = k/wt.featurizer.total
+                    shift = k/wt.featurizer.total 
+                    if shift != wt.window_size:
+                        continue
                     index = k % wt.featurizer.total
-                    string = '{0}_{1}'.format(wt.featurizer.i2f[index], shift)
+                    string = wt.featurizer.i2f[index]
                     string_f_cl[string] = []
                     for i in f_cl[k][:3]:
                         shift2 = i/wt.featurizer.total
+                        if shift != wt.window_size:
+                            continue
                         index2 = i % wt.featurizer.total
-                        string2 = '{0}_{1}'.format(wt.featurizer.i2f[index2], shift2)
+                        string2 = wt.featurizer.i2f[index2]
                         string_f_cl[string].append(string2)
                 output.write(repr(string_f_cl))        
                 output.write('\n')
