@@ -194,8 +194,8 @@ def init_presplitted_corpus(args):
     test_res = WordTaggerDataset.create_from_tagged_corpus(
         test_c, window_size=ws)
     words, feats, y, _, _ = train_res
-    n_words = len(train_res[3] | test_res[3] | valid_res[3])
     n_classes = len(train_res[4] | test_res[4] | valid_res[4])
+    n_words= len(train_c.w2i)
     train_ds = WordTaggerDataset((words, feats), y, n_words, ws,
                                  featurizer.total, featurizer.feat_num,
                                  n_classes)
@@ -218,7 +218,8 @@ def init_split_corpus(args):
     c = TaggedCorpus(args.train_file, featurizer, w2i=w2i)
     res = WordTaggerDataset.create_from_tagged_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
-    n_words, n_classes = len(vocab), len(classes)
+    n_classes = len(classes)
+    n_words = len(c.w2i)
     d = create_splitted_datasets(words, feats, y, args.train_split, n_words,
                                  ws, featurizer.total, featurizer.feat_num,
                                  n_classes)
