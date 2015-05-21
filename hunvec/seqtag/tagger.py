@@ -59,8 +59,18 @@ def tag(args):
                 close = [i2w[i] for i in list(cl)]
                 output.write('\t'.join(close))
                 output.write('\n')
-                print type(f_cl), f_cl.keys()
-                quit()
+                string_f_cl = {}
+                for k in f_cl:
+                    shift = k/wt.featurizer.total
+                    index = k % wt.featurizer.total
+                    string = '{0}_{1}'.format(wt.featurizer.i2f[index], shift)
+                    string_f_cl[string] = []
+                    for i in f_cl[k][:3]:
+                        shift2 = i/wt.featurizer.total
+                        index2 = i % wt.featurizer.total
+                        string2 = '{0}_{1}'.format(wt.featurizer.i2f[index2], shift2)
+                        string_f_cl[string].append(string2)
+                output.write(repr(string_f_cl))        
                 output.write('\n')
         else:
             tags = result
