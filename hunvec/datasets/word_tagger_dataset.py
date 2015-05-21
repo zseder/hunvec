@@ -22,6 +22,8 @@ def read_vocab(fn, lower=True, decoder='utf-8'):
             w = w.decode(decoder)
         if lower:
             w = w.lower()
+        if w in d:
+            continue
         d[w] = len(d)
     return d
 
