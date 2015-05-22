@@ -47,17 +47,20 @@ def tag(args):
         result = wt.tag_sen(window_words, window_feats, args.debug)
         if args.debug:
             tags, tagger_out, close_wds, f_closests = result
+            print close_wds
             for w, t, to, cl, f_cl in zip(orig_words, tags, tagger_out, close_wds, f_closests):
                 t = i2t[t]
-                output.write('{0}\t{1}\n'.format(w, t))
+                output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
                 output.write(u'\t'.join([' '.join([tag.lower(),
                     str(round(prob, 4))]) 
-                    for tag, prob in zip(tags, probs)]))
+                    for tag, prob in zip(tags, probs)]).encode('utf-8'))
                 output.write('\n')
                 close = [i2w[i] for i in list(cl)]
-                output.write(repr(close))
+                print close
+                quit()
+                output.write(u'\t'.join(close).encode('utf-8'))
                 output.write('\n')
                 string_f_cl = {}
                 for k in f_cl:

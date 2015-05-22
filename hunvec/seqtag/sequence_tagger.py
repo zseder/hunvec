@@ -220,6 +220,7 @@ class SequenceTaggerNetwork(Model):
         self.A_value = self.A.get_value()[2:]
 
     def tag_sen(self, words, feats, debug=False):
+        
         if not hasattr(self, 'f'):
             self.prepare_tagging()
         y = self.f(words, feats)
@@ -232,14 +233,17 @@ class SequenceTaggerNetwork(Model):
                     self.featurizer.total*(self.window_size+1))
             if not hasattr(self, 'close_cache'):
                 self.close_cache = {}
+            print self.close_cache    
             if not hasattr(self, 'close_feat_cache'):
                  self.close_feat_cache = {}
             close_wds = []
             close_feats = []
             for w, f in izip(words, feats):
                 w_  = w[self.window_size]
+                print w_
                 vectors = self.tagger.layers[0].layers[0].get_params()[0].get_value()
                 close_words = self.get_close(self.close_cache, w_, vectors)
+                print close_words
                 close_wds.append(close_words)
                 f_closests = {}
                 for f_ in f:
@@ -254,8 +258,10 @@ class SequenceTaggerNetwork(Model):
         if item in cache:
             closests = cache[item]
         else:
+            print 260, item
             close_i = cdist(numpy.array([vectors[item]]), vectors)
             closests = numpy.argsort(close_i[0])[:10]
+            print closests
             cache[item] = closests
         return closests          
 
