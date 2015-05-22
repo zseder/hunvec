@@ -21,6 +21,7 @@ class RawCorpus(object):
     def read(self, pre=False, needed_fields=[0]):
         s = []
         for l in open(self.fn):
+            l = l.decode('utf-8')
             if len(l.strip('\n')) == 0:
                 if not pre:
                     s = self.add_features(s)
