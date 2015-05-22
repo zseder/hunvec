@@ -60,14 +60,14 @@ class WordTaggerDataset(Dataset):
         self.X1 = X[0]
         self.X2 = X[1]
         self.y = y
-        self.vocab_size = vocab_size
+        self.vocab_size = vocab_size + 1
         self.window_size = window_size
         ws = (window_size * 2 + 1)
         self.total_feats = total_feats * ws
         self.feat_num = feat_num * ws 
         self.n_classes = n_classes
         space = CompositeSpace((
-            IndexSequenceSpace(max_labels=vocab_size, dim=ws),
+            IndexSequenceSpace(max_labels=self.vocab_size, dim=ws),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
             IndexSequenceSpace(dim=1, max_labels=n_classes)
@@ -190,9 +190,9 @@ def init_presplitted_corpus(args):
     train_res = WordTaggerDataset.create_from_tagged_corpus(
         train_c, window_size=ws)
     valid_res = WordTaggerDataset.create_from_tagged_corpus(
-        valid_c, window_size=ws)
+        valid_c, window_size=ws, use_unknown=True)
     test_res = WordTaggerDataset.create_from_tagged_corpus(
-        test_c, window_size=ws)
+        test_c, window_size=ws, use_unknown=True)
     words, feats, y, _, _ = train_res
     n_classes = len(train_res[4] | test_res[4] | valid_res[4])
     n_words= len(train_c.w2i)
