@@ -184,15 +184,15 @@ def init_presplitted_corpus(args):
     w2i = (read_vocab(args.vocab) if args.vocab else None)
     train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i)
     valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
-                           t2i=train_c.t2i)
+                           t2i=train_c.t2i, use_unknown=True)
     test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
-                          t2i=valid_c.t2i)
+                          t2i=valid_c.t2i, use_unknown=True)
     train_res = WordTaggerDataset.create_from_tagged_corpus(
         train_c, window_size=ws)
     valid_res = WordTaggerDataset.create_from_tagged_corpus(
-        valid_c, window_size=ws, use_unknown=True)
+        valid_c, window_size=ws)
     test_res = WordTaggerDataset.create_from_tagged_corpus(
-        test_c, window_size=ws, use_unknown=True)
+        test_c, window_size=ws)
     words, feats, y, _, _ = train_res
     n_classes = len(train_res[4] | test_res[4] | valid_res[4])
     n_words= len(train_c.w2i)

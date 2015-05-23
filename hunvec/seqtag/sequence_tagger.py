@@ -274,14 +274,16 @@ class SequenceTaggerNetwork(Model):
 
         if edim != self.edim:
             raise Exception("Embedding dim and edim doesn't match")
-
+        m_lower = {}
+        for k in m.vocab:
+            m_lower[k.lower()] = m[k]
         # transform weight matrix with using self.w2i
         params = numpy.zeros(
             self.tagger.layers[0].layers[0].get_param_vector().shape)
         e = self.edim
         for w in self.w2i:
-            if w in m:
-                v = m[w]
+            if w in m_lower:
+                v = m_lower[w]
                 i = self.w2i[w]
                 params[i*e:(i+1)*e] = v
 

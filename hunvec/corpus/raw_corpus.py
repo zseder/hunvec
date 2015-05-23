@@ -41,5 +41,9 @@ class RawCorpus(object):
     def add_ints(self, sen):
         for i in xrange(len(sen)):
             new_wi = (self.unk if self.use_unknown else len(self.w2i))
-            sen[i] = [self.w2i.setdefault(sen[i][0].lower(), new_wi)]\
-                    + sen[i][1:] + [sen[i][0]]
+            w = sen[i][0].lower()
+            sen[i] = [self.w2i.get(w, new_wi)]\
+                      + sen[i][1:] + [sen[i][0]]
+            if not self.use_unknown and w not in self.w2i:
+                self.w2i[w] = new_wi
+ 
