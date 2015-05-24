@@ -240,7 +240,6 @@ class SequenceTaggerNetwork(Model):
         return numpy.array([[e] for e in best_path])
 
     def get_close_wds(self, words):
-        
         close_wds = []
         for w in words:
             w_  = w[self.window_size]

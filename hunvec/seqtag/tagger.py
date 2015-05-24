@@ -29,10 +29,11 @@ def get_sens(f):
 
 def tag(args):
     wt = serial.load(args.model)
-    i2w = {}
     if args.debug:
         vectors = wt.tagger.layers[0].layers[0].get_params()[0].get_value()
-        i2w = dict([(v, k) for k, v in wt.w2i.iteritems()])
+        i2w = [w for w, i in sorted(wt.w2i.iteritems(), key=lambda x: x[1])]
+        i2w.append("UNK")
+
     # read input from stdin sentence by sentence
     rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i,
             use_unknown=True)
@@ -60,7 +61,7 @@ def tag(args):
             tags = result
             for w, t in izip(orig_words, tags):
                 t = i2t[t]
-                output.write('{0}\t{1}\n'.format(w, t))
+                output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
             output.write('\n')    
 
 def debug_data(wt, to, cl, f_cl, i2t, i2w):
@@ -79,13 +80,11 @@ def debug_data(wt, to, cl, f_cl, i2t, i2w):
 
 
 def turn_feat_dict2string(wt, f_cl):
-    print wt.window_size
-   
     string_f_cl = {}
     for k in f_cl:
         
         shift = k/wt.featurizer.total 
-        print k, shift, wt.featurizer.total
+        #print k, shift, wt.featurizer.total
         if shift != wt.window_size:
             continue
         index = k % wt.featurizer.total
@@ -98,7 +97,7 @@ def turn_feat_dict2string(wt, f_cl):
                 continue
             index2 = i % wt.featurizer.total
             string2 = wt.featurizer.i2f[index2]
-            string_f_cl[string].append((string2, i, shift2, index2))
+            string_f_cl[string].append(string2)
     return string_f_cl        
 
 def main():
