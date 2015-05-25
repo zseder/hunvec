@@ -39,7 +39,11 @@ class WordTaggerNetwork(MLP):
             ],
             inputs_to_layers={0: [0], 1: [1]}
         )
+        hiddens = self.create_hidden_layers()
+        output = self.create_output_layer()
+        return [input_] + hiddens + [output], input_space
 
+    def create_hidden_layers(self):
         # for parameter settings, see Remark 7 (Tricks) in NLP from scratch
         hiddens = []
         for i, hdim in enumerate(self.hdims):
@@ -47,10 +51,11 @@ class WordTaggerNetwork(MLP):
             h = Tanh(layer_name='h{}'.format(i), dim=hdim,
                      istdev=1./sqrt(hdim), W_lr_scale=sc, b_lr_scale=sc)
             hiddens.append(h)
+        return hiddens
 
+    def create_output_layer(self):
         sc = 1. / self.n_classes
         output = Linear(layer_name='tagger_out',
                         istdev=1. / sqrt(self.n_classes),
                         dim=self.n_classes, W_lr_scale=sc, b_lr_scale=sc)
-
-        return [input_] + hiddens + [output], input_space
+        return output
