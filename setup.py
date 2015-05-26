@@ -11,6 +11,7 @@ def my_setup():
         packages=[
             'hunvec', 'hunvec.corpus', 'hunvec.nnlm', 'hunvec.utils',
             'hunvec.layers', 'hunvec.seqtag', 'hunvec.feature', 'hunvec.cost',
+            'hunvec.datasets'
         ],
         package_dir={'': '.'},
         include_package_data=True,
