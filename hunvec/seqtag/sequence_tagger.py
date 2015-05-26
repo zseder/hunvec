@@ -18,6 +18,7 @@ from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
+from hunvec.seqtag.extended_hidden_network import ExtendedHiddenNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
 from hunvec.utils.fscore import FScCounter
@@ -29,7 +30,8 @@ class SequenceTaggerNetwork(Model):
                  max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=.1,
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
-                 dropout_params=None, embedding_init=None):
+                 dropout_params=None, embedding_init=None,
+                 embedded_model=None, embedded_model_lr=0):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -60,9 +62,17 @@ class SequenceTaggerNetwork(Model):
         self.input_source = ('words', 'features')
         self.target_source = 'targets'
 
-        self.tagger = WordTaggerNetwork(self.vocab_size, self.window_size,
-                                        self.total_feats, self.feat_num,
-                                        hdims, edim, fedim, self.n_classes)
+        if embedded_model:
+            self.embedded_model = embedded_model
+            self.embedded_modeL_lr = embedded_model_lr
+            self.tagger = ExtendedHiddenNetwork(
+                embedded_model.n_classes,
+                self.vocab_size, self.window_size, self.total_feats,
+                self.feat_num, hdims, edim, fedim, self.n_classes)
+        else:
+            self.tagger = WordTaggerNetwork(
+                self.vocab_size, self.window_size, self.total_feats,
+                self.feat_num, hdims, edim, fedim, self.n_classes)
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -109,6 +119,10 @@ class SequenceTaggerNetwork(Model):
         return d
 
     def fprop(self, data):
+        if hasattr(self, 'embedded_model'):
+            res = self.embedded_model.fprop(data)
+            data = (data[0], data[1], res)
+
         tagger_out = self.tagger.fprop(data)
         probs = T.concatenate([self.A, tagger_out])
         return probs
@@ -144,6 +158,12 @@ class SequenceTaggerNetwork(Model):
     @functools.wraps(Model.get_params)
     def get_params(self):
         return self.tagger.get_params() + [self.A]
+
+    def set_input_space(self, space):
+        self.input_space = space
+
+    def set_mlp(self, mlp):
+        pass
 
     def create_adjustors(self):
         initial_momentum = .5

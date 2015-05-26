@@ -69,6 +69,7 @@ class Featurizer(object):
                 self.feats.append(
                     partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
         self.feat_num = len(self.feats)
+        self.kept = [{} for _ in self.feats]
 
     def load_gazetteers(self, fns):
         self.gazetteers = {}
@@ -98,11 +99,11 @@ class Featurizer(object):
         self.keep_features(feature_counters)
 
     def keep_features(self, feat_counts, min_count=5):
-        self.kept = [{} for _ in self.feats]
         for feat_i in xrange(len(self.feats)):
             for feat, feat_c in feat_counts[feat_i].iteritems():
                 if feat_c >= min_count:
-                    self.kept[feat_i][feat] = len(self.kept[feat_i])
+                    if feat not in self.kept[feat_i][feat]:
+                        self.kept[feat_i][feat] = len(self.kept[feat_i])
         self.build_final_data()
 
     def build_final_data(self):

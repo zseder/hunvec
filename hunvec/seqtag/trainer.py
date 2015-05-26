@@ -5,7 +5,7 @@ import argparse
 from pylearn2.utils import serial
 
 # the WordTaggerDataset import is needed because of pickle load
-from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
+from hunvec.datasets.word_tagger_dataset import load_dataset
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
 
 
@@ -46,6 +46,11 @@ def create_argparser():
                            help='use dropout on inner network')
     argparser.add_argument('--embedding_init', help='embedding weights for ' +
                            'initialization, in word2vec format')
+    argparser.add_argument('--embedded_model', help='pretrained hunvec ' +
+                           'model whose input will be used for training')
+    argparser.add_argument('--embedded_model_lr', help='learning rate for ' +
+                           'embedded_model; if 0: no learning on this model',
+                          default=0., type=float)
     return argparser.parse_args()
 
 
@@ -58,11 +63,18 @@ def init_network(args, dataset, corpus):
             msg += "when loading a model for further training"
             logging.warning(msg)
     else:
+        if args.embedded_model:
+            embedded_model = serial.load(args.embedded_model)
+        else:
+            embedded_model = None
         wt = SequenceTaggerNetwork(
             dataset=dataset, w2i=corpus.w2i, t2i=corpus.t2i,
             featurizer=corpus.featurizer,
             edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
-            embedding_init=args.embedding_init)
+            embedding_init=args.embedding_init,
+            embedded_model=embedded_model,
+            embedded_model_lr=args.embedded_model_lr
+        )
 
     if args.epochs:
         wt.max_epochs = args.epochs
