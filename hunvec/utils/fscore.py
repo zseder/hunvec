@@ -102,6 +102,7 @@ class FScCounter:
 
     def process_sen(self, gold_sen, input_sen):
 
+        gold_sen = gold_sen.argmax(axis=1).reshape(input_sen.shape)
         gold_phrases = set([gp for gp in self.generate_phrases(gold_sen)])
         input_phrases = set([gp for gp in self.generate_phrases(input_sen)])
         self.update_scores(gold_phrases, input_phrases)
