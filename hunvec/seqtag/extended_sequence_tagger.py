@@ -10,6 +10,11 @@ class ExtendedSequenceTaggerNetwork(SequenceTaggerNetwork):
         self.embedded_model = embedded_model
         super(ExtendedSequenceTaggerNetwork, self).__init__(*args, **kwargs)
 
+    def __getstate__(self):
+        d = super(ExtendedSequenceTaggerNetwork, self).__getstate__()
+        d['embedded_model'] = self.embedded_model
+        return d
+
     def _create_tagger(self):
         self.tagger = ExtendedHiddenNetwork(
             self.embedded_model.n_classes,
