@@ -20,7 +20,9 @@ class WordTaggerDataset(Dataset):
         self.total_feats = total_feats * ws
         self.feat_num = feat_num * ws 
         self.n_classes = n_classes
-        self.y = self.convert_to_sparse(y)
+        if len(y[0][0]) == 1:
+            y = self.convert_to_sparse(y)
+        self.y = y
         self._create_data_specs()
 
     def _create_data_specs(self):
