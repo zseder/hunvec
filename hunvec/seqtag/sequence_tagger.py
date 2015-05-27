@@ -241,8 +241,8 @@ class SequenceTaggerNetwork(Model):
             #return res.reshape((1, len(res)))
         
         if debug:
-            return numpy.array([[e] for e in res[0]]), tagger_out
-        return numpy.array([[e] for e in res[0]])
+            return numpy.array([[e] for e in res[1]]), tagger_out
+        return numpy.array([[e] for e in res[1]])
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
