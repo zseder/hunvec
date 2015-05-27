@@ -14,7 +14,7 @@ class ExtendedWordTaggerDataset(WordTaggerDataset):
             X=(other.X1, other.X2), y=other.y, vocab_size=other.vocab_size,
             window_size=other.window_size, total_feats=tf, feat_num=fn,
             n_classes=other.n_classes)
-        self.X3 = [tagger.tag_sen(self.X1[i], self.X2[i])
+        self.X3 = [tagger.tag_sen(self.X1[i], self.X2[i], return_probs=True)
                    for i in xrange(len(self.X1))]
 
     def _create_data_specs(self):

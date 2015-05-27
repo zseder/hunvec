@@ -52,8 +52,7 @@ class SequenceTaggerNetwork(Model):
         self.t2i = t2i
         self.featurizer = featurizer
 
-        #self.__create_data_specs(dataset)
-        self.__create_tagger()
+        self._create_tagger()
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -72,12 +71,12 @@ class SequenceTaggerNetwork(Model):
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
 
-    def __create_tagger(self):
+    def _create_tagger(self):
         self.tagger = WordTaggerNetwork(
             self.vocab_size, self.window_size, self.total_feats,
             self.feat_num, self.hdims, self.edim, self.fedim, self.n_classes)
 
-    def __create_data_specs(self, dataset):
+    def _create_data_specs(self, dataset):
         self.input_space = CompositeSpace([
             dataset.data_specs[0].components[i]
             for i in xrange(len(dataset.data_specs[0].components) - 1)])
@@ -168,7 +167,7 @@ class SequenceTaggerNetwork(Model):
                 start, saturate, self.lr_lin_decay)
 
     def set_dataset(self, data):
-        self.__create_data_specs(data['train'])
+        self._create_data_specs(data['train'])
         self.dataset = data
 
     def create_algorithm(self, data, save_best_path=None):
@@ -195,11 +194,11 @@ class SequenceTaggerNetwork(Model):
         learning_rule = (self.momentum_rule if self.use_momentum else None)
         self.algorithm = SGD(batch_size=1, learning_rate=self.lr,
                              termination_criterion=term,
-                             monitoring_dataset=data,
+                             monitoring_dataset=self.dataset,
                              cost=cost,
                              learning_rule=learning_rule,
                              )
-        self.trainer = Train(dataset=data['train'], model=self,
+        self.trainer = Train(dataset=self.dataset['train'], model=self,
                              algorithm=self.algorithm,
                              extensions=[self.learning_rate_adjustor])
         self.algorithm.setup(self, self.dataset['train'])
@@ -229,17 +228,21 @@ class SequenceTaggerNetwork(Model):
     def process_input(self, words, feats):
         return self.f(words, feats)
 
-    def tag_sen(self, words, feats, debug=False):
+    def tag_sen(self, words, feats, debug=False, return_probs=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
         
         y = self.process_input(words, feats)
         tagger_out = y[2 + self.n_classes:]
-        _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
-                               self.n_classes)
+        res = viterbi(self.start, self.A_value, self.end, tagger_out,
+                               self.n_classes, return_probs)
+        if return_probs:
+            return res
+            #return res.reshape((1, len(res)))
+        
         if debug:
-            return numpy.array([[e] for e in best_path]), tagger_out
-        return numpy.array([[e] for e in best_path])
+            return numpy.array([[e] for e in res[0]]), tagger_out
+        return numpy.array([[e] for e in res[0]])
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
