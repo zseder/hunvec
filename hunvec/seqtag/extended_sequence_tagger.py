@@ -37,5 +37,6 @@ class ExtendedSequenceTaggerNetwork(SequenceTaggerNetwork):
         self.A_value = self.A.get_value()[2:]
 
     def process_input(self, words, feats):
-        inner_tags = self.embedded_model.tag_sen(words, feats)
+        inner_tags = self.embedded_model.tag_sen(
+            words, feats, return_probs=True)
         return self.f(words, feats, inner_tags)
