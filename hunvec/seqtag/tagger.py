@@ -30,7 +30,7 @@ def get_sens(f):
 def tag(args):
     wt = serial.load(args.model)
     # read input from stdin sentence by sentence
-    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i, t2i=wt.t2i,
+    rc = RawCorpus(args.input_, wt.featurizer, w2i=wt.w2i,
             use_unknown=True)
     output = (open(args.output, 'w') if args.output is not None
               else sys.stdout)
@@ -44,18 +44,18 @@ def tag(args):
             tags, tagger_out = result
             for w, t, to in izip(orig_words, tags, tagger_out):
                 t = i2t[t]
-                output.write('{0}\t{1}\n'.format(w, t))
+                output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
                 tags = [i2t[i] for i in argsort(-to)][:5]
                 probs = sorted(to, reverse = True)[:5]
-                output.write('\t'.join([' '.join([tag.lower(),
+                output.write(u'\t'.join([' '.join([tag.lower(),
                     str(round(prob, 4))]) 
-                    for tag, prob in zip(tags, probs)]))
+                    for tag, prob in zip(tags, probs)]).encode('utf-8'))
                 output.write('\n')
         else:
             tags = result
             for w, t in izip(orig_words, tags):
                 t = i2t[t]
-                output.write('{0}\t{1}\n'.format(w, t))
+                output.write(u'{0}\t{1}\n'.format(w, t).encode('utf-8'))
         output.write('\n')
 
 
