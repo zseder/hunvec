@@ -26,7 +26,7 @@ from hunvec.utils.fscore import FScCounter
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
                  edim=None, hdims=None, fedim=None,
-                 max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=.1,
+                 max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=None,
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
@@ -237,7 +237,7 @@ class SequenceTaggerNetwork(Model):
         res = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes, return_probs)
         if return_probs:
-            return res
+            return res / res.sum(axis=1)[:,numpy.newaxis]
             #return res.reshape((1, len(res)))
         
         if debug:
