@@ -1,8 +1,9 @@
 import numpy
+import theano
 
 
 def viterbi(start, A, end, tagger_out, n_classes, return_probs=False):
-    V = numpy.zeros(tagger_out.shape)
+    V = numpy.zeros(tagger_out.shape, dtype=theano.config.floatX)
     path = {}
     states = range(n_classes)
 
