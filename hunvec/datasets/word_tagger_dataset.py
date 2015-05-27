@@ -21,11 +21,15 @@ class WordTaggerDataset(Dataset):
         self.feat_num = feat_num * ws 
         self.n_classes = n_classes
         self.y = self.convert_to_sparse(y)
+        self.__create_data_specs()
+
+    def __create_data_specs(self):
+        ws = (self.window_size * 2 + 1)
         space = CompositeSpace((
             IndexSequenceSpace(max_labels=self.vocab_size, dim=ws),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
-            VectorSequenceSpace(dim=n_classes)
+            VectorSequenceSpace(dim=self.n_classes)
         ))
         source = ('words', 'features', 'targets')
         self.data_specs = (space, source)

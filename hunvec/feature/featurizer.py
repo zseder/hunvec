@@ -84,10 +84,6 @@ class Featurizer(object):
         """ reads the whole corpus to preprocess features for detecting
         feature numbers. For example how many starting trigrams or ending
         trigrams there are"""
-        if hasattr(self, 'kept'):
-            # using featurizer that was already used (train/test/valid)
-            return
-
         feature_counters = [defaultdict(int) for _ in self.feats]
         for sentence in corpus:
             for word in sentence:
@@ -102,7 +98,7 @@ class Featurizer(object):
         for feat_i in xrange(len(self.feats)):
             for feat, feat_c in feat_counts[feat_i].iteritems():
                 if feat_c >= min_count:
-                    if feat not in self.kept[feat_i][feat]:
+                    if feat not in self.kept[feat_i]:
                         self.kept[feat_i][feat] = len(self.kept[feat_i])
         self.build_final_data()
 

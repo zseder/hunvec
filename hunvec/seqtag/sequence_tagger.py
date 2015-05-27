@@ -18,7 +18,6 @@ from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
-from hunvec.seqtag.extended_hidden_network import ExtendedHiddenNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
 from hunvec.utils.fscore import FScCounter
@@ -31,7 +30,7 @@ class SequenceTaggerNetwork(Model):
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
-                 embedded_model=None, embedded_model_lr=0):
+                 embedded_model=None):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -53,26 +52,8 @@ class SequenceTaggerNetwork(Model):
         self.t2i = t2i
         self.featurizer = featurizer
 
-        self.input_space = CompositeSpace([
-            dataset.data_specs[0].components[0],
-            dataset.data_specs[0].components[1],
-        ])
-        self.output_space = dataset.data_specs[0].components[2]
-
-        self.input_source = ('words', 'features')
-        self.target_source = 'targets'
-
-        if embedded_model:
-            self.embedded_model = embedded_model
-            self.embedded_modeL_lr = embedded_model_lr
-            self.tagger = ExtendedHiddenNetwork(
-                embedded_model.n_classes,
-                self.vocab_size, self.window_size, self.total_feats,
-                self.feat_num, hdims, edim, fedim, self.n_classes)
-        else:
-            self.tagger = WordTaggerNetwork(
-                self.vocab_size, self.window_size, self.total_feats,
-                self.feat_num, hdims, edim, fedim, self.n_classes)
+        #self.__create_data_specs(dataset)
+        self.__create_tagger()
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -90,6 +71,20 @@ class SequenceTaggerNetwork(Model):
         self.hdims = hdims
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
+
+    def __create_tagger(self):
+        self.tagger = WordTaggerNetwork(
+            self.vocab_size, self.window_size, self.total_feats,
+            self.feat_num, self.hdims, self.edim, self.fedim, self.n_classes)
+
+    def __create_data_specs(self, dataset):
+        self.input_space = CompositeSpace([
+            dataset.data_specs[0].components[i]
+            for i in xrange(len(dataset.data_specs[0].components) - 1)])
+        self.output_space = dataset.data_specs[0].components[-1]
+
+        self.input_source = dataset.data_specs[1][:-1]
+        self.target_source = dataset.data_specs[1][-1]
 
     def __getstate__(self):
         d = {}
@@ -119,10 +114,6 @@ class SequenceTaggerNetwork(Model):
         return d
 
     def fprop(self, data):
-        if hasattr(self, 'embedded_model'):
-            res = self.embedded_model.fprop(data)
-            data = (data[0], data[1], res)
-
         tagger_out = self.tagger.fprop(data)
         probs = T.concatenate([self.A, tagger_out])
         return probs
@@ -159,12 +150,6 @@ class SequenceTaggerNetwork(Model):
     def get_params(self):
         return self.tagger.get_params() + [self.A]
 
-    def set_input_space(self, space):
-        self.input_space = space
-
-    def set_mlp(self, mlp):
-        pass
-
     def create_adjustors(self):
         initial_momentum = .5
         final_momentum = .99
@@ -182,8 +167,12 @@ class SequenceTaggerNetwork(Model):
             self.learning_rate_adjustor = LinearDecayOverEpoch(
                 start, saturate, self.lr_lin_decay)
 
-    def create_algorithm(self, data, save_best_path=None):
+    def set_dataset(self, data):
+        self.__create_data_specs(data['train'])
         self.dataset = data
+
+    def create_algorithm(self, data, save_best_path=None):
+        self.set_dataset(data)
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
         if self.valid_stop:
@@ -237,11 +226,14 @@ class SequenceTaggerNetwork(Model):
         self.end = self.A.get_value()[1]
         self.A_value = self.A.get_value()[2:]
 
+    def process_input(self, words, feats):
+        return self.f(words, feats)
+
     def tag_sen(self, words, feats, debug=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
-
-        y = self.f(words, feats)
+        
+        y = self.process_input(words, feats)
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
