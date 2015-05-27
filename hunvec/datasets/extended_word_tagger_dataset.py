@@ -12,12 +12,12 @@ class ExtendedWordTaggerDataset(WordTaggerDataset):
         fn = other.feat_num / ws
         super(ExtendedWordTaggerDataset, self).__init__(
             X=(other.X1, other.X2), y=other.y, vocab_size=other.vocab_size,
-            windows_size=other.window_size, total_feats=tf, feat_num=fn,
+            window_size=other.window_size, total_feats=tf, feat_num=fn,
             n_classes=other.n_classes)
         self.X3 = [tagger.tag_sen(self.X1[i], self.X2[i])
                    for i in xrange(len(self.X1))]
 
-    def __create_data_specs(self):
+    def _create_data_specs(self):
         ws = (self.window_size * 2 + 1)
         space = CompositeSpace((
             IndexSequenceSpace(max_labels=self.vocab_size, dim=ws),

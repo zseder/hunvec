@@ -7,10 +7,10 @@ from hunvec.datasets.extended_word_tagger_dataset import \
 
 class ExtendedSequenceTaggerNetwork(SequenceTaggerNetwork):
     def __init__(self, embedded_model, *args, **kwargs):
-        super(ExtendedSequenceTaggerNetwork, self).__init__(*args, **kwargs)
         self.embedded_model = embedded_model
+        super(ExtendedSequenceTaggerNetwork, self).__init__(*args, **kwargs)
 
-    def __create_tagger(self):
+    def _create_tagger(self):
         self.tagger = ExtendedHiddenNetwork(
             self.embedded_model.n_classes,
             self.vocab_size, self.window_size, self.total_feats,
@@ -20,7 +20,7 @@ class ExtendedSequenceTaggerNetwork(SequenceTaggerNetwork):
         new_data = {}
         for k, d in data.iteritems():
             new_data[k] = ExtendedWordTaggerDataset(self.embedded_model, d)
-        self.__create_data_specs(new_data['train'])
+        self._create_data_specs(new_data['train'])
         self.dataset = new_data
 
     def prepare_tagging(self):
