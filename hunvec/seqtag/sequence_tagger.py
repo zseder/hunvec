@@ -184,7 +184,8 @@ class SequenceTaggerNetwork(Model):
         if self.reg_factors:
             rf = self.reg_factors
             lhdims = len(self.tagger.hdims)
-            coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
+            l_inputlayer = len(self.tagger.layers[0].layers)
+            coeffs = ([[rf] * l_inputlayer] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs, self.dropout)
         self.cost = cost
 
@@ -246,15 +247,16 @@ class SequenceTaggerNetwork(Model):
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
-        tagged = (self.tag_sen(w, f) for w, f in
+        tagged = (self.tag_sen(w, f, return_probs=True) for w, f in
                   izip(dataset.X1, dataset.X2))
         gold = dataset.y
         good, bad = 0., 0.
         if mode == 'pwp':
             for t, g in izip(tagged, gold):
+                g, t = g.argmax(axis=1), t.argmax(axis=1)
                 good += sum(t == g)
                 bad += sum(t != g)
-            return good / (good + bad)
+            return [good / (good + bad)]
         elif mode == 'f1':
             i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
             f1c = FScCounter(i2t)
