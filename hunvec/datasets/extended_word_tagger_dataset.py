@@ -1,5 +1,7 @@
 import numpy
 
+import theano
+
 from pylearn2.space import CompositeSpace, IndexSequenceSpace
 from pylearn2.space import VectorSequenceSpace
 
@@ -23,7 +25,7 @@ class ExtendedWordTaggerDataset(WordTaggerDataset):
     @staticmethod
     def windowize_tagged_vectors(tsen, ws, n_classes):
         pad = numpy.array(
-            [numpy.zeros(n_classes)] * ws)
+            [numpy.zeros(n_classes)] * ws, dtype=theano.config.floatX)
         ptsen = numpy.concatenate([pad, tsen, pad])
         l = []
         for i in xrange(ws, len(ptsen) - ws):
