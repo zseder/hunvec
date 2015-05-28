@@ -39,4 +39,6 @@ class ExtendedSequenceTaggerNetwork(SequenceTaggerNetwork):
     def process_input(self, words, feats):
         inner_tags = self.embedded_model.tag_sen(
             words, feats, return_probs=True)
-        return self.f(words, feats, inner_tags)
+        windowed_tags = ExtendedWordTaggerDataset.windowize_tagged_vectors(
+            inner_tags, self.window_size, self.embedded_model.n_classes)
+        return self.f(words, feats, windowed_tags)
