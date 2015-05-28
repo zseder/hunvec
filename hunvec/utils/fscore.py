@@ -75,7 +75,7 @@ class FScCounter:
         categ = None
         ph_i = 0
         for i in xrange(len(sen)):
-            ind = sen[i][0]
+            ind = sen[i]
             if ind in self.phrase_beginners:
                 categ = self.phrase_beginners[ind]['cat']
                 if self.phrase_beginners[ind]['part'] == '1':
