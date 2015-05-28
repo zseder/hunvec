@@ -1,3 +1,5 @@
+import numpy
+
 from pylearn2.space import CompositeSpace, IndexSequenceSpace
 from pylearn2.space import VectorSequenceSpace
 
@@ -14,8 +16,31 @@ class ExtendedWordTaggerDataset(WordTaggerDataset):
             X=(other.X1, other.X2), y=other.y, vocab_size=other.vocab_size,
             window_size=other.window_size, total_feats=tf, feat_num=fn,
             n_classes=other.n_classes)
-        self.X3 = [tagger.tag_sen(self.X1[i], self.X2[i], return_probs=True)
+        tagged_sens = [tagger.tag_sen(self.X1[i], self.X2[i], return_probs=True)
                    for i in xrange(len(self.X1))]
+        self.create_windowed_tagged_vectors(tagged_sens)
+
+    @staticmethod
+    def windowize_tagged_vectors(tsen, ws, n_classes):
+        pad = numpy.array(
+            [numpy.zeros(n_classes)] * ws)
+        ptsen = numpy.concatenate([pad, tsen, pad])
+        l = []
+        for i in xrange(ws, len(ptsen) - ws):
+            window = ptsen[i - ws: i + ws + 1]
+            window = window.flatten()
+            l.append(window)
+        return numpy.array(l)
+
+    def create_windowed_tagged_vectors(self, tagged_sens):
+        self.X3 = []
+        ws = self.window_size
+        n_classes = self.tagger.n_classes
+        for tsen in tagged_sens:
+            self.X3.append(ExtendedWordTaggerDataset.windowize_tagged_vectors(
+                tsen, ws, n_classes))
+            #print self.X3[-1].shape
+            #quit()
 
     def _create_data_specs(self):
         ws = (self.window_size * 2 + 1)
@@ -23,7 +48,7 @@ class ExtendedWordTaggerDataset(WordTaggerDataset):
             IndexSequenceSpace(max_labels=self.vocab_size, dim=ws),
             IndexSequenceSpace(max_labels=self.total_feats,
                                dim=self.feat_num),
-            VectorSequenceSpace(dim=self.tagger.n_classes),
+            VectorSequenceSpace(dim=self.tagger.n_classes * ws),
             VectorSequenceSpace(dim=self.n_classes)
         ))
         source = ('words', 'features', 'tags', 'targets')
