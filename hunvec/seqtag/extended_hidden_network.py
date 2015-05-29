@@ -1,15 +1,29 @@
 from math import sqrt
 
-from hunvec.seqtag.word_tagger import WordTaggerNetwork
+import numpy
+
+import theano
+
 from pylearn2.models.mlp import CompositeLayer, Linear
 from pylearn2.sandbox.nlp.models.mlp import ProjectionLayer
 from pylearn2.space import CompositeSpace, IndexSpace, VectorSpace
+
+from hunvec.seqtag.word_tagger import WordTaggerNetwork
+
+
+def _modify_updates(params):
+    return None
 
 
 class ExtendedHiddenNetwork(WordTaggerNetwork):
     def __init__(self, extender_dim, *args, **kwargs):
         self.extender_dim = extender_dim
         super(ExtendedHiddenNetwork, self).__init__(*args, **kwargs)
+        embed = self.layers[0].layers[2]
+        # HACK do not learn this, only set values to zero
+        embed._modify_updates = _modify_updates
+        embed.set_param_vector(numpy.ones(embed.get_param_vector().shape,
+                                          dtype=theano.config.floatX))
 
     def create_input_source(self):
         return ('words', 'features', 'tagger_out')
@@ -26,12 +40,9 @@ class ExtendedHiddenNetwork(WordTaggerNetwork):
         size = self.extender_dim * (self.ws * 2 + 1)
         embed = Linear(layer_name='lin_embed', dim=size,
                        istdev=1. / sqrt(size))
-        # HACK do not learn this, only set values to zero
-        #embed._modify_updates = lambda x: None
-        #embed.set_param_vector(numpy.ones(size))
 
         return CompositeLayer(
-            layer_name='ext_input',
+            layer_name='input',
             layers=[
                 ProjectionLayer(layer_name='ext_words', dim=self.edim, irange=.1),
                 ProjectionLayer(layer_name='ext_feats', dim=self.fedim, irange=.1),
