@@ -36,6 +36,7 @@ def init_presplitted_corpus(args):
         valid_file = args.valid_file[i]
         res.append(prepare_presplitted_corpus(
             train_file, valid_file, test_file, featurizer, w2i, args.ws))
+        w2i = res[-1][-1].w2i
 
     res2 = []
     for i in xrange(len(args.train_file)):

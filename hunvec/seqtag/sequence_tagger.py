@@ -166,9 +166,28 @@ class SequenceTaggerNetwork(Model):
             self.learning_rate_adjustor = LinearDecayOverEpoch(
                 start, saturate, self.lr_lin_decay)
 
+    def compute_used_inputs(self):
+        seen = {'words': set(), 'feats': set()}
+        for sen_w in self.dataset['train'].X1:
+            seen['words'] |= reduce(
+                lambda x, y: set(x) | set(y),
+                sen_w)
+        for sen_f in self.dataset['train'].X2:
+            seen['feats'] |= reduce(
+                lambda x, y: set(x) | set(y),
+                sen_f)
+        words = set(xrange(len(self.w2i)))
+        feats = set(xrange(self.total_feats))
+        self.notseen = {
+            'words': numpy.array(sorted(words - seen['words'])),
+            'feats': numpy.array(sorted(feats - seen['feats']))
+        }
+
     def set_dataset(self, data):
         self._create_data_specs(data['train'])
         self.dataset = data
+        self.compute_used_inputs()
+        self.tagger.notseen = self.notseen
 
     def create_algorithm(self, data, save_best_path=None):
         self.set_dataset(data)

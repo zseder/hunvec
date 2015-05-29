@@ -1,4 +1,5 @@
 from math import sqrt
+from functools import wraps
 
 import numpy
 
@@ -11,17 +12,12 @@ from pylearn2.space import CompositeSpace, IndexSpace, VectorSpace
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 
 
-def _modify_updates(params):
-    return None
-
-
 class ExtendedHiddenNetwork(WordTaggerNetwork):
     def __init__(self, extender_dim, *args, **kwargs):
         self.extender_dim = extender_dim
         super(ExtendedHiddenNetwork, self).__init__(*args, **kwargs)
         embed = self.layers[0].layers[2]
         # HACK do not learn this, only set values to zero
-        embed._modify_updates = _modify_updates
         embed.set_param_vector(numpy.ones(embed.get_param_vector().shape,
                                           dtype=theano.config.floatX))
 
@@ -50,3 +46,11 @@ class ExtendedHiddenNetwork(WordTaggerNetwork):
             ],
             inputs_to_layers={0: [0], 1: [1], 2: [2]}
         )
+
+    @wraps(WordTaggerNetwork._modify_updates)
+    def _modify_updates(self, updates):
+        updates = super(WordTaggerNetwork, self)._modify_updates(updates)
+        wW = self.layers[0].layers[2].W
+        if wW in updates:
+            updates[wW] = 0.
+        return updates
