@@ -1,4 +1,5 @@
 from math import sqrt
+from functools import wraps
 
 
 from pylearn2.models.mlp import MLP, CompositeLayer, Tanh, Linear
@@ -66,3 +67,14 @@ class WordTaggerNetwork(MLP):
                         istdev=1. / sqrt(self.n_classes),
                         dim=self.n_classes, W_lr_scale=sc, b_lr_scale=sc)
         return output
+
+    @wraps(MLP._modify_updates)
+    def _modify_updates(self, updates):
+        wW = self.layers[0].layers[0].W
+        if wW in updates:
+            updates[wW][self.not_seen['words']] = 0.
+
+        fW = self.layers[0].layers[1].W
+        if fW in updates:
+            updates[fW][self.not_seen['feats']] = 0.
+
