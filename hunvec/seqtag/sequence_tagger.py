@@ -90,6 +90,7 @@ class SequenceTaggerNetwork(Model):
         d['vocab_size'] = self.vocab_size
         d['window_size'] = self.window_size
         d['feat_num'] = self.feat_num
+        d['total_feats'] = self.total_feats
         d['n_classes'] = self.n_classes
         d['input_space'] = self.input_space
         d['output_space'] = self.output_space
@@ -218,9 +219,12 @@ class SequenceTaggerNetwork(Model):
                              cost=cost,
                              learning_rule=learning_rule,
                              )
+        ext = []
+        if hasattr(self, 'learning_rate_adjustor'):
+            ext.append(self.learning_rate_adjustor)
         self.trainer = Train(dataset=self.dataset['train'], model=self,
                              algorithm=self.algorithm,
-                             extensions=[self.learning_rate_adjustor])
+                             extensions=ext)
         self.algorithm.setup(self, self.dataset['train'])
 
     def train(self):
