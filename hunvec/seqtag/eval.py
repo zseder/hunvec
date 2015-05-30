@@ -2,7 +2,7 @@ import argparse
 
 from pylearn2.utils import serial
 
-from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
+from hunvec.datasets.prepare import load_dataset
 
 
 class CSL2L(argparse.Action):

@@ -45,7 +45,7 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
 
     def cost_seq(self, start, end, A, tagger_out, targets):
         # compute gold seq's score with using A and tagger_out
-        gold_seq = targets.flatten()
+        gold_seq = T.argmax(targets, axis=1)
         seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
 
         # tagger_out_scores

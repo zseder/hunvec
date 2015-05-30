@@ -26,10 +26,11 @@ from hunvec.utils.fscore import FScCounter
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
                  edim=None, hdims=None, fedim=None,
-                 max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=.1,
+                 max_epochs=100, use_momentum=False, lr=.01, lr_lin_decay=None,
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
-                 dropout_params=None, embedding_init=None):
+                 dropout_params=None, embedding_init=None,
+                 embedded_model=None):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -51,18 +52,7 @@ class SequenceTaggerNetwork(Model):
         self.t2i = t2i
         self.featurizer = featurizer
 
-        self.input_space = CompositeSpace([
-            dataset.data_specs[0].components[0],
-            dataset.data_specs[0].components[1],
-        ])
-        self.output_space = dataset.data_specs[0].components[2]
-
-        self.input_source = ('words', 'features')
-        self.target_source = 'targets'
-
-        self.tagger = WordTaggerNetwork(self.vocab_size, self.window_size,
-                                        self.total_feats, self.feat_num,
-                                        hdims, edim, fedim, self.n_classes)
+        self._create_tagger()
 
         A_value = numpy.random.uniform(low=-.1, high=.1,
                                        size=(self.n_classes + 2,
@@ -80,6 +70,20 @@ class SequenceTaggerNetwork(Model):
         self.hdims = hdims
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
+
+    def _create_tagger(self):
+        self.tagger = WordTaggerNetwork(
+            self.vocab_size, self.window_size, self.total_feats,
+            self.feat_num, self.hdims, self.edim, self.fedim, self.n_classes)
+
+    def _create_data_specs(self, dataset):
+        self.input_space = CompositeSpace([
+            dataset.data_specs[0].components[i]
+            for i in xrange(len(dataset.data_specs[0].components) - 1)])
+        self.output_space = dataset.data_specs[0].components[-1]
+
+        self.input_source = dataset.data_specs[1][:-1]
+        self.target_source = dataset.data_specs[1][-1]
 
     def __getstate__(self):
         d = {}
@@ -162,8 +166,31 @@ class SequenceTaggerNetwork(Model):
             self.learning_rate_adjustor = LinearDecayOverEpoch(
                 start, saturate, self.lr_lin_decay)
 
-    def create_algorithm(self, data, save_best_path=None):
+    def compute_used_inputs(self):
+        seen = {'words': set(), 'feats': set()}
+        for sen_w in self.dataset['train'].X1:
+            seen['words'] |= reduce(
+                lambda x, y: set(x) | set(y),
+                sen_w)
+        for sen_f in self.dataset['train'].X2:
+            seen['feats'] |= reduce(
+                lambda x, y: set(x) | set(y),
+                sen_f)
+        words = set(xrange(len(self.w2i)))
+        feats = set(xrange(self.total_feats))
+        self.notseen = {
+            'words': numpy.array(sorted(words - seen['words'])),
+            'feats': numpy.array(sorted(feats - seen['feats']))
+        }
+
+    def set_dataset(self, data):
+        self._create_data_specs(data['train'])
         self.dataset = data
+        self.compute_used_inputs()
+        self.tagger.notseen = self.notseen
+
+    def create_algorithm(self, data, save_best_path=None):
+        self.set_dataset(data)
         self.create_adjustors()
         term = EpochCounter(max_epochs=self.max_epochs)
         if self.valid_stop:
@@ -176,7 +203,8 @@ class SequenceTaggerNetwork(Model):
         if self.reg_factors:
             rf = self.reg_factors
             lhdims = len(self.tagger.hdims)
-            coeffs = ([[rf, rf]] + ([rf] * lhdims) + [rf], rf)
+            l_inputlayer = len(self.tagger.layers[0].layers)
+            coeffs = ([[rf] * l_inputlayer] + ([rf] * lhdims) + [rf], rf)
         cost = SeqTaggerCost(coeffs, self.dropout)
         self.cost = cost
 
@@ -186,11 +214,11 @@ class SequenceTaggerNetwork(Model):
         learning_rule = (self.momentum_rule if self.use_momentum else None)
         self.algorithm = SGD(batch_size=1, learning_rate=self.lr,
                              termination_criterion=term,
-                             monitoring_dataset=data,
+                             monitoring_dataset=self.dataset,
                              cost=cost,
                              learning_rule=learning_rule,
                              )
-        self.trainer = Train(dataset=data['train'], model=self,
+        self.trainer = Train(dataset=self.dataset['train'], model=self,
                              algorithm=self.algorithm,
                              extensions=[self.learning_rate_adjustor])
         self.algorithm.setup(self, self.dataset['train'])
@@ -217,29 +245,37 @@ class SequenceTaggerNetwork(Model):
         self.end = self.A.get_value()[1]
         self.A_value = self.A.get_value()[2:]
 
-    def tag_sen(self, words, feats, debug=False):
+    def process_input(self, words, feats):
+        return self.f(words, feats)
+
+    def tag_sen(self, words, feats, debug=False, return_probs=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
-
-        y = self.f(words, feats)
+        
+        y = self.process_input(words, feats)
         tagger_out = y[2 + self.n_classes:]
-        _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
-                               self.n_classes)
+        res = viterbi(self.start, self.A_value, self.end, tagger_out,
+                               self.n_classes, return_probs)
+        if return_probs:
+            return res / res.sum(axis=1)[:,numpy.newaxis]
+            #return res.reshape((1, len(res)))
+        
         if debug:
-            return numpy.array([[e] for e in best_path]), tagger_out
-        return numpy.array([[e] for e in best_path])
+            return numpy.array([[e] for e in res[1]]), tagger_out
+        return numpy.array([[e] for e in res[1]])
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
-        tagged = (self.tag_sen(w, f) for w, f in
+        tagged = (self.tag_sen(w, f, return_probs=True) for w, f in
                   izip(dataset.X1, dataset.X2))
         gold = dataset.y
         good, bad = 0., 0.
         if mode == 'pwp':
             for t, g in izip(tagged, gold):
+                g, t = g.argmax(axis=1), t.argmax(axis=1)
                 good += sum(t == g)
                 bad += sum(t != g)
-            return good / (good + bad)
+            return [good / (good + bad)]
         elif mode == 'f1':
             i2t = [t for t, i in sorted(self.t2i.items(), key=lambda x: x[1])]
             f1c = FScCounter(i2t)

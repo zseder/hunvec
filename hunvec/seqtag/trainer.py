@@ -5,8 +5,9 @@ import argparse
 from pylearn2.utils import serial
 
 # the WordTaggerDataset import is needed because of pickle load
-from hunvec.datasets.word_tagger_dataset import load_dataset, WordTaggerDataset  # nopep8
+from hunvec.datasets.prepare import load_dataset
 from hunvec.seqtag.sequence_tagger import SequenceTaggerNetwork
+from hunvec.seqtag.extended_sequence_tagger import ExtendedSequenceTaggerNetwork
 
 
 class CSL2L(argparse.Action):
@@ -46,6 +47,8 @@ def create_argparser():
                            help='use dropout on inner network')
     argparser.add_argument('--embedding_init', help='embedding weights for ' +
                            'initialization, in word2vec format')
+    argparser.add_argument('--embedded_model', help='pretrained hunvec ' +
+                           'model whose input will be used for training')
     return argparser.parse_args()
 
 
@@ -58,11 +61,17 @@ def init_network(args, dataset, corpus):
             msg += "when loading a model for further training"
             logging.warning(msg)
     else:
-        wt = SequenceTaggerNetwork(
+        init_args = dict(
             dataset=dataset, w2i=corpus.w2i, t2i=corpus.t2i,
             featurizer=corpus.featurizer,
             edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
             embedding_init=args.embedding_init)
+        if args.embedded_model:
+            embedded_model = serial.load(args.embedded_model)
+            wt = ExtendedSequenceTaggerNetwork(embedded_model=embedded_model,
+                                               **init_args)
+        else:
+            wt = SequenceTaggerNetwork(**init_args)
 
     if args.epochs:
         wt.max_epochs = args.epochs
