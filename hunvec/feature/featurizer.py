@@ -58,8 +58,8 @@ gaz_fns = {
 class Featurizer(object):
     def __init__(self, gazetteer_needed=False, fns=None):
         self.feats = [
-            case_feature,
-            lasts, last_but_ones, last_but_twos
+            #case_feature,
+            #lasts, last_but_ones, last_but_twos
         ]
         if gazetteer_needed:
             if fns is None:
