@@ -19,7 +19,7 @@ class ExtendedHiddenNetwork(WordTaggerNetwork):
         embed = self.layers[0].layers[2]
         # HACK do not learn this, only set values to zero
         embed.set_param_vector(numpy.ones(embed.get_param_vector().shape,
-                                          dtype=theano.config.floatX))
+                                          dtype=theano.config.floatX) / 100.0)
 
     def create_input_source(self):
         return ('words', 'features', 'tagger_out')
