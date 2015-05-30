@@ -27,8 +27,6 @@ class RawCorpus(object):
                     s = self.add_features(s)
                     self.add_ints(s)
                 yield s
-                print s
-                quit()
                 s = []
                 continue
             le = l.strip().split("\t")
@@ -38,7 +36,6 @@ class RawCorpus(object):
             if not pre:
                 s = self.add_features(s)
                 self.add_ints(s)
-                
             yield s
 
     def add_ints(self, sen):
