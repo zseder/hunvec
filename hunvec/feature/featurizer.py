@@ -105,9 +105,12 @@ class Featurizer(object):
     def build_final_data(self):
         # using k + 1 because of "else" or "fake" features (needed)
         self.total = sum(len(k) + 1 for k in self.kept)
+        self.fake_features = []
+        if self.total == 0:
+            return
 
         # list with fake features, needed for pads
-        self.fake_features = [len(self.kept[0])]
+        self.fake_features.append(len(self.kept[0]))
 
         # reverse dict for easier printouts
         self.i2f = [None] * self.total
