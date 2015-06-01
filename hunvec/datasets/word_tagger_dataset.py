@@ -45,6 +45,19 @@ class WordTaggerDataset(Dataset):
             ly.append(a)
         return ly
 
+    def hide_rare_words(self, min_freq=10):
+        counts = {}
+        for s in self.X1:
+            for window in s:
+                w = window[self.window_size]
+                counts[w] = counts.get(w, 0) + 1
+
+        for i in xrange(len(self.X1)):
+            for row_i in xrange(self.X1[i].shape[0]):
+                self.X1[i][row_i] = numpy.array(
+                    [(e if e < 0 or counts[e] >= min_freq else -1)
+                     for e in self.X1[i][row_i]])
+
     def get_num_examples(self):
         return len(self.X1)
 

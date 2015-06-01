@@ -46,6 +46,7 @@ def init_presplitted_corpus(args):
         train_ds = WordTaggerDataset((words, feats), y, n_words, ws,
                                      featurizer.total, featurizer.feat_num,
                                      n_classes)
+        train_ds.hide_rare_words()
         words, feats, y, _, _ = valid_res
         valid_ds = WordTaggerDataset((words, feats), y, n_words, ws,
                                      featurizer.total, featurizer.feat_num,
