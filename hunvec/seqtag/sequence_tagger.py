@@ -238,8 +238,9 @@ class SequenceTaggerNetwork(Model):
             if self.use_momentum:
                 self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
                                                   self.algorithm)
-            self.learning_rate_adjustor.on_monitor(self, self.dataset['valid'],
-                                                   self.algorithm)
+            if hasattr(self, 'learning_rate_adjustor'):
+                self.learning_rate_adjustor.on_monitor(
+                    self, self.dataset['valid'], self.algorithm)
 
     def prepare_tagging(self):
         X = self.get_input_space().make_theano_batch(batch_size=1)
