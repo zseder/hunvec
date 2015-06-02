@@ -164,7 +164,8 @@ class SequenceTaggerNetwork(Model):
 
         if self.lr_monitor_decay:
             self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-                low_trigger=1., shrink_amt=.9, channel_name='train_objective')
+                high_trigger=1., shrink_amt=0.9,
+                low_trigger=.95, grow_amt=1.1, channel_name='train_objective')
         elif self.lr_lin_decay:
             self.learning_rate_adjustor = LinearDecayOverEpoch(
                 start, saturate, self.lr_lin_decay)
