@@ -2,6 +2,10 @@ from collections import defaultdict
 from functools import partial
 
 
+def fake_feat(word):
+    return 'fake:'
+
+
 def case_feature(word):
     if word.isupper():
         return 'case:upper'
@@ -57,7 +61,10 @@ gaz_fns = {
 
 class Featurizer(object):
     def __init__(self, gazetteer_needed=False, fns=None):
+
+        # HACK fake_feat has to be always there to avoid empty arrays
         self.feats = [
+            fake_feat,
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
