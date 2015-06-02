@@ -218,12 +218,12 @@ class SequenceTaggerNetwork(Model):
         if not self.monitor_train:
             del mon_dataset['train']
 
-        learning_rule = (self.momentum_rule if self.use_momentum else None)
+        _learning_rule = (self.momentum_rule if self.use_momentum else None)
         self.algorithm = SGD(batch_size=1, learning_rate=self.lr,
                              termination_criterion=term,
                              monitoring_dataset=mon_dataset,
                              cost=cost,
-                             learning_rule=learning_rule,
+                             learning_rule=_learning_rule,
                              )
         ext = []
         if hasattr(self, 'learning_rate_adjustor'):
