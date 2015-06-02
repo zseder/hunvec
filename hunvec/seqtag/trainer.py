@@ -40,6 +40,9 @@ def create_argparser():
                            ' (used only when no lr_lin_decay)')
     argparser.add_argument('--valid_stop', action='store_true',
                            help='don\'t use valid data to decide when to stop')
+    argparser.add_argument('--skip_monitor_train', action='store_true',
+                           help='don\'t monitor on training set. Increases' +
+                           ' training speed')
     argparser.add_argument('--dropout_params', action=CSL2L,
                            help='use dropout on inner network' +
                            'include probs per layer')
@@ -65,7 +68,8 @@ def init_network(args, dataset, corpus):
             dataset=dataset, w2i=corpus.w2i, t2i=corpus.t2i,
             featurizer=corpus.featurizer,
             edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
-            embedding_init=args.embedding_init)
+            embedding_init=args.embedding_init,
+            monitor_train=not args.skip_monitor_train)
         if args.embedded_model:
             embedded_model = serial.load(args.embedded_model)
             wt = ExtendedSequenceTaggerNetwork(embedded_model=embedded_model,
@@ -87,6 +91,8 @@ def init_network(args, dataset, corpus):
         wt.lr_scale = args.lr_scale
     if args.valid_stop:
         wt.valid_stop = args.valid_stop
+    if args.skip_monitor_train:
+        wt.valid_stop = not args.skip_monitor_train
     if args.regularization:
         wt.reg_factors = args.regularization
     if args.dropout_params:
