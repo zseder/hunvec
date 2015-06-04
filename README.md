@@ -1,3 +1,13 @@
+## Why use hunvec?
+
+hunvec is being developed to use neural networks in various nlp tasks.
+Our intention is to support researchers to give them a tool with which one can experiment with different settings to create neural networks.
+It is built upon pylearn2/theano, so recent advances in deep learning, that are supported in pylearn2, will hopefully work out of the box.
+Now it supports basic sequential tagging network based on Natural Language Processing from Scratch paper, Collobert et al. 2011.
+We designed hunvec in a way to be easily reconfigurable (adding, removing layers, testing hyperparameters, new features, like dropout) to test new advances, how good they are in NLP tasks.
+If you have any questions, feel free to use the issues page, or contact us: zseder@gmail.com; pajkossy.katalin@nytud.mta.hu
+
+
 ## Sequential tagging
 
 Library is ready for pos and ner (or any other bieo1 tagged) training. `hunvec/datasets/prepare.py` is doing preprocessing.
@@ -28,13 +38,26 @@ Datasets has to be in the common format:
 
 Preparing dataset with train/test/devel split (before preparing, features can be turned on and off in `features/features.py`):
 ~~~~
-python hunvec/datasets/prepare.py \\
---test_file data/eng.bie1.test --valid_file data/eng.bie1.devel -w 3 data/eng.bie1.train preprocessed_dataset.pickle
+python hunvec/datasets/prepare.py
+-w 3
+--test_file data/eng.bie1.test
+--valid_file data/eng.bie1.devel
+data/eng.bie1.train preprocessed_dataset.pickle
 ~~~~
 
 For training and continuing a trained model with a given dataset:
 ~~~~
-python hunvec/seqtag/trainer.py --epochs 100 --regularization 1e-2 --valid_stop --embedding 100 --hidden 200 --lr .1 --lr_lin_decay .1 dataset.pickle model
+python hunvec/seqtag/trainer.py
+--epochs 100
+--regularization 1e-5
+--valid_stop
+--embedding 100
+--hidden 200
+--lr .1
+--lr_lin_decay .1
+--lr_scale
+dataset.pickle
+output_model
 ~~~~
 
 For evaluation:
@@ -54,7 +77,11 @@ To achieve this, one has to prepare datasets together in order to make words and
 
 Example running for multiple preparing:
 ~~~~
-python hunvec/datasets/prepare.py --test_file test1.tsv,test2.tsv --valid_file valid1.tsv,valid2.tsv -w 3 train1.tsv,train2.tsv model1.pickle,model2.pickle
+python hunvec/datasets/prepare.py
+-w 3
+--test_file test1.tsv,test2.tsv
+--valid_file valid1.tsv,valid2.tsv
+train1.tsv,train2.tsv model1.pickle,model2.pickle
 ~~~~
 
 Then, if a first model has been trained individually from the first dataset and saved into `model1.pickle`, it can be passed to `trainer.py` with option `--embedded_model`. Don't forget to use datasets that are prepared together.
