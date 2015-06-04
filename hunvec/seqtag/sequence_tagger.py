@@ -30,7 +30,7 @@ class SequenceTaggerNetwork(Model):
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
-                 embedded_model=None):
+                 embedded_model=None, monitor_train=True):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -68,6 +68,7 @@ class SequenceTaggerNetwork(Model):
         self.dropout_params = dropout_params
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
+        self.monitor_train = monitor_train
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
 
@@ -111,6 +112,7 @@ class SequenceTaggerNetwork(Model):
         d['reg_factors'] = self.reg_factors
         d['dropout'] = self.dropout
         d['dropout_params'] = self.dropout_params
+        d['monitor_train'] = self.monitor_train
         return d
 
     def fprop(self, data):
@@ -162,7 +164,8 @@ class SequenceTaggerNetwork(Model):
 
         if self.lr_monitor_decay:
             self.learning_rate_adjustor = MonitorBasedLRAdjuster(
-                low_trigger=1., shrink_amt=.9, channel_name='train_objective')
+                high_trigger=1., shrink_amt=0.9,
+                low_trigger=.95, grow_amt=1.1, channel_name='train_objective')
         elif self.lr_lin_decay:
             self.learning_rate_adjustor = LinearDecayOverEpoch(
                 start, saturate, self.lr_lin_decay)
@@ -211,13 +214,16 @@ class SequenceTaggerNetwork(Model):
 
         self.mbsb = MonitorBasedSaveBest(channel_name='valid_objective',
                                          save_path=save_best_path)
+        mon_dataset = dict(self.dataset)
+        if not self.monitor_train:
+            del mon_dataset['train']
 
-        learning_rule = (self.momentum_rule if self.use_momentum else None)
+        _learning_rule = (self.momentum_rule if self.use_momentum else None)
         self.algorithm = SGD(batch_size=1, learning_rate=self.lr,
                              termination_criterion=term,
-                             monitoring_dataset=self.dataset,
+                             monitoring_dataset=mon_dataset,
                              cost=cost,
-                             learning_rule=learning_rule,
+                             learning_rule=_learning_rule,
                              )
         ext = []
         if hasattr(self, 'learning_rate_adjustor'):
@@ -238,8 +244,9 @@ class SequenceTaggerNetwork(Model):
             if self.use_momentum:
                 self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
                                                   self.algorithm)
-            self.learning_rate_adjustor.on_monitor(self, self.dataset['valid'],
-                                                   self.algorithm)
+            if hasattr(self, 'learning_rate_adjustor'):
+                self.learning_rate_adjustor.on_monitor(
+                    self, self.dataset['valid'], self.algorithm)
 
     def prepare_tagging(self):
         X = self.get_input_space().make_theano_batch(batch_size=1)
