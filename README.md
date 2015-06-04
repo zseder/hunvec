@@ -28,7 +28,8 @@ Datasets has to be in the common format:
 
 Preparing dataset with train/test/devel split (before preparing, features can be turned on and off in `features/features.py`):
 ~~~~
-python hunvec/datasets/prepare.py --test_file data/eng.bie1.test --valid_file data/eng.bie1.devel -w 3 data/eng.bie1.train preprocessed_dataset.pickle
+python hunvec/datasets/prepare.py \\
+--test_file data/eng.bie1.test --valid_file data/eng.bie1.devel -w 3 data/eng.bie1.train preprocessed_dataset.pickle
 ~~~~
 
 For training and continuing a trained model with a given dataset:
