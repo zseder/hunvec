@@ -64,7 +64,7 @@ class Featurizer(object):
 
         # HACK fake_feat has to be always there to avoid empty arrays
         self.feats = [
-            fake_feat,
+            #fake_feat,
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
