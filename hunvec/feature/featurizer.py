@@ -68,6 +68,11 @@ class Featurizer(object):
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
+        # HACK2 fake_feat messes up results (maybe slows down SGD) so it is 
+        # removed when there are others as well
+        if len(self.feats) > 1:
+            self.feats = [f for f in self.feats if f is not fake_feat]
+
         if gazetteer_needed:
             if fns is None:
                 fns = gaz_fns
