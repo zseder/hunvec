@@ -235,12 +235,12 @@ class SequenceTaggerNetwork(Model):
 
     def train(self):
         while True:
+            if not self.algorithm.continue_learning(self):
+                break
             self.algorithm.train(dataset=self.dataset['train'])
             self.monitor.report_epoch()
             self.monitor()
             self.mbsb.on_monitor(self, self.dataset['valid'], self.algorithm)
-            if not self.algorithm.continue_learning(self):
-                break
             if self.use_momentum:
                 self.momentum_adjustor.on_monitor(self, self.dataset['valid'],
                                                   self.algorithm)
