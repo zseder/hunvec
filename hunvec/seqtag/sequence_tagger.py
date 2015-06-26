@@ -277,6 +277,8 @@ class SequenceTaggerNetwork(Model):
         tagged = (self.tag_sen(w, f) for w, f in
                   izip(dataset.X1, dataset.X2))
         gold = dataset.y
+
+    def get_score(self, dataset, mode='pwp'):
         good, bad = 0., 0.
         if mode == 'pwp':
             for t, g in izip(tagged, gold):
