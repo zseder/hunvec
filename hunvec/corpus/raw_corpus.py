@@ -5,7 +5,7 @@ class RawCorpus(object):
         self.fn = fn
         self.featurizer = featurizer
         self.use_unknown = use_unknown
-        if featurizer is not None:
+        if featurizer is not None and not hasattr(featurizer, 'total'):
             self.featurizer.preprocess_corpus(self.read(pre=True))
 
         self.unk = -1

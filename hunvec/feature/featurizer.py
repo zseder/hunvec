@@ -2,6 +2,10 @@ from collections import defaultdict
 from functools import partial
 
 
+def fake_feat(word):
+    return 'fake:'
+
+
 def case_feature(word):
     if word.isupper():
         return 'case:upper'
@@ -57,10 +61,18 @@ gaz_fns = {
 
 class Featurizer(object):
     def __init__(self, gazetteer_needed=False, fns=None):
+
+        # HACK fake_feat has to be always there to avoid empty arrays
         self.feats = [
+            #fake_feat,
             case_feature,
             lasts, last_but_ones, last_but_twos
         ]
+        # HACK2 fake_feat messes up results (maybe slows down SGD) so it is 
+        # removed when there are others as well
+        if len(self.feats) > 1:
+            self.feats = [f for f in self.feats if f is not fake_feat]
+
         if gazetteer_needed:
             if fns is None:
                 fns = gaz_fns
@@ -69,6 +81,7 @@ class Featurizer(object):
                 self.feats.append(
                     partial(gazetteer_feat, name=c, set_=self.gazetteers[c]))
         self.feat_num = len(self.feats)
+        self.kept = [{} for _ in self.feats]
 
     def load_gazetteers(self, fns):
         self.gazetteers = {}
@@ -83,10 +96,6 @@ class Featurizer(object):
         """ reads the whole corpus to preprocess features for detecting
         feature numbers. For example how many starting trigrams or ending
         trigrams there are"""
-        if hasattr(self, 'kept'):
-            # using featurizer that was already used (train/test/valid)
-            return
-
         feature_counters = [defaultdict(int) for _ in self.feats]
         for sentence in corpus:
             for word in sentence:
@@ -98,19 +107,22 @@ class Featurizer(object):
         self.keep_features(feature_counters)
 
     def keep_features(self, feat_counts, min_count=5):
-        self.kept = [{} for _ in self.feats]
         for feat_i in xrange(len(self.feats)):
             for feat, feat_c in feat_counts[feat_i].iteritems():
                 if feat_c >= min_count:
-                    self.kept[feat_i][feat] = len(self.kept[feat_i])
+                    if feat not in self.kept[feat_i]:
+                        self.kept[feat_i][feat] = len(self.kept[feat_i])
         self.build_final_data()
 
     def build_final_data(self):
         # using k + 1 because of "else" or "fake" features (needed)
         self.total = sum(len(k) + 1 for k in self.kept)
+        self.fake_features = []
+        if self.total == 0:
+            return
 
         # list with fake features, needed for pads
-        self.fake_features = [len(self.kept[0])]
+        self.fake_features.append(len(self.kept[0]))
 
         # reverse dict for easier printouts
         self.i2f = [None] * self.total

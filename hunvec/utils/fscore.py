@@ -2,6 +2,34 @@ import numpy
 from itertools import izip
 
 
+def get_precision(tp, fp):
+    if not (tp + fp == 0):
+        precision = tp/(tp + fp)
+    else:
+        precision = 'N/A'
+    return precision
+
+
+def get_recall(tp, fn):
+    if not (tp + fn == 0):
+        recall = tp/(tp + fn)
+    else:
+        recall = 'N/A'
+    return recall
+
+
+def get_fscore(tp, fp, fn):
+    precision = get_precision(tp, fp)
+    recall = get_recall(tp, fn)
+    if precision == 0 and recall == 0:
+        f_score = 0
+    elif precision == 'N/A' or recall == 'N/A':
+        f_score = 'N/A'
+    else:
+        f_score = 2*precision*recall/(precision + recall)
+    return precision, recall, f_score
+
+
 class FScCounter:
 
     def __init__(self, labels):
@@ -48,26 +76,21 @@ class FScCounter:
             self.confusion_matrix[k]['fn'] = float(0)
 
     def calculate_f(self):
+        global_tp = sum(self.confusion_matrix[k]['tp']
+                        for k in self.confusion_matrix)
+        global_fp = sum(self.confusion_matrix[k]['fp']
+                        for k in self.confusion_matrix)
+        global_fn = sum(self.confusion_matrix[k]['fn']
+                        for k in self.confusion_matrix)
 
         for k in self.confusion_matrix:
             tp = self.confusion_matrix[k]['tp']
             fp = self.confusion_matrix[k]['fp']
             fn = self.confusion_matrix[k]['fn']
-            if not (tp + fp == 0):
-                precision = tp/(tp + fp)
-            else:
-                precision = 'N/A'
-            if not (tp + fn == 0):
-                recall = tp/(tp + fn)
-            else:
-                recall = 'N/A'
-            if precision == 0 and recall == 0:
-                f_score = 0
-            elif precision == 'N/A' or recall == 'N/A':
-                f_score = 'N/A'
-            else:
-                f_score = 2*precision*recall/(precision + recall)
+            precision, recall, f_score = get_fscore(tp, fp, fn)
             yield (k, precision, recall, f_score)
+        prec, rec, f = get_fscore(global_tp, global_fp, global_fn)
+        yield ('Global', prec, rec, f)
 
     def generate_phrases(self, sen):
 
@@ -75,7 +98,7 @@ class FScCounter:
         categ = None
         ph_i = 0
         for i in xrange(len(sen)):
-            ind = sen[i][0]
+            ind = sen[i]
             if ind in self.phrase_beginners:
                 categ = self.phrase_beginners[ind]['cat']
                 if self.phrase_beginners[ind]['part'] == '1':
@@ -102,6 +125,8 @@ class FScCounter:
 
     def process_sen(self, gold_sen, input_sen):
 
+        gold_sen = gold_sen.argmax(axis=1)
+        input_sen = input_sen.argmax(axis=1)
         gold_phrases = set([gp for gp in self.generate_phrases(gold_sen)])
         input_phrases = set([gp for gp in self.generate_phrases(input_sen)])
         self.update_scores(gold_phrases, input_phrases)

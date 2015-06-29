@@ -1,8 +1,9 @@
 import numpy
+import theano
 
 
-def viterbi(start, A, end, tagger_out, n_classes):
-    V = numpy.zeros(tagger_out.shape)
+def viterbi(start, A, end, tagger_out, n_classes, return_probs=False):
+    V = numpy.zeros(tagger_out.shape, dtype=theano.config.floatX)
     path = {}
     states = range(n_classes)
 
@@ -30,6 +31,9 @@ def viterbi(start, A, end, tagger_out, n_classes):
     n = 0
     if tagger_out.shape[0] != 1:
         n = t
+    if return_probs:
+        return V
+
     state = V[n].argmax()
     prob = V[n][state]
     return (prob, path[state])
