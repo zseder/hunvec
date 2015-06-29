@@ -220,57 +220,16 @@ class SequenceTaggerNetwork(Model):
         self.A_value = self.A.get_value()[2:]
 
     def tag_sen(self, words, feats, debug=False):
-        
         if not hasattr(self, 'f'):
             self.prepare_tagging()
         y = self.f(words, feats)
         tagger_out = y[2 + self.n_classes:]
         _, best_path = viterbi(self.start, self.A_value, self.end, tagger_out,
                                self.n_classes)
-        
         if debug:
-            if not hasattr(self, 'close_cache'):
-                self.close_cache = {}
-            if not hasattr(self, 'close_feat_cache'):
-                 self.close_feat_cache = {}
-            close_wds = self.get_close_wds(words)
-            close_feats = self.get_close_feats(feats)
             return numpy.array([[e] for e in best_path]), \
-                    tagger_out, close_wds, close_feats
+                    tagger_out
         return numpy.array([[e] for e in best_path])
-
-    def get_close_wds(self, words):
-        close_wds = []
-        for w in words:
-            w_  = w[self.window_size]
-            vec = self.tagger.layers[0].layers[0].\
-                    get_params()[0].get_value()
-            close = self.get_close(self.close_cache, w_, vec)
-            close_wds.append(close)
-        return close_wds    
-
-    
-    def get_close_feats(self, feats):
-        
-        close_feats = []
-        for f in feats:
-            close = {}
-            for f_ in f:
-                vec = self.tagger.layers[0].layers[1].\
-                        get_params()[0].get_value()
-                close[f_] = self.get_close(self.close_feat_cache, f_, vec)
-            close_feats.append(close)   
-        return close_feats    
-
-    def get_close(self, cache, item, vec):
-        
-        if item in cache:
-            close = cache[item]
-        else:
-            close_i = cdist(numpy.array([vec[item]]), vec)
-            close = numpy.argsort(close_i[0])[:10]
-            cache[item] = close
-        return close  
 
     def get_score(self, dataset, mode='pwp'):
         self.prepare_tagging()
