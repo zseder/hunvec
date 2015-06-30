@@ -45,6 +45,9 @@ class DebugTagger(Tagger):
         close_f_dict = self.get_close_f_dict(f)
         self.output.write(u'{0}\n'.format(close_f_dict).encode('utf-8'))
 
+    def extend_sen_data(self, result):
+        for r in result:
+            yield [list(i) for i in result]
     
     def get_close_f_dict(self, f):
 
