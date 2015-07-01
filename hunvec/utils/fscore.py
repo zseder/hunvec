@@ -32,9 +32,10 @@ def get_fscore(tp, fp, fn):
 
 class FScCounter:
 
-    def __init__(self, labels):
+    def __init__(self, labels, binary_input=True):
 
         self.get_mappings(labels)
+        self.binary_input=binary_input
 
     def get_mappings(self, labels):
 
@@ -124,9 +125,10 @@ class FScCounter:
             yield sc
 
     def process_sen(self, gold_sen, input_sen):
-
-        gold_sen = gold_sen.argmax(axis=1)
-        input_sen = input_sen.argmax(axis=1)
+        
+        if self.binary_input:
+            gold_sen = gold_sen.argmax(axis=1)
+            input_sen = input_sen.argmax(axis=1)
         gold_phrases = set([gp for gp in self.generate_phrases(gold_sen)])
         input_phrases = set([gp for gp in self.generate_phrases(input_sen)])
         self.update_scores(gold_phrases, input_phrases)
