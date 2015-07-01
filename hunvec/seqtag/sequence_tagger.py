@@ -284,7 +284,7 @@ class SequenceTaggerNetwork(Model):
         if mode == 'pwp':
             for t, g in izip(tagged, gold):
                 g = g.argmax(axis=1)
-                t.flatten()
+                t = t.flatten()
                 good += sum(t == g)
                 bad += sum(t != g)
             return [good / (good + bad)]
