@@ -45,8 +45,9 @@ class Tagger:
                     w, f, self.wt.window_size, self.wt.featurizer)
             result = self.wt.tag_sen(window_words, 
                     window_feats, debug=self.debug)
+            sen_data = self.update_sen_data(sen_data, result)
+            self.write_result(sen_data)
             self.update_scores(to_print, result)
-            self.write_result(sen_data, result)
         self.write_scores()    
      
     def update_scores(self, to_print, result):
@@ -58,6 +59,10 @@ class Tagger:
     def write_scores(self):
         pass
 
+    def update_sen_data(self, sen_data, result):
+        sen_data.append(list(result.flatten()))
+        return sen_data
+
     def generate_sen_data(self):
        
         rc = RawCorpus(self.input_, self.wt.featurizer, w2i=self.wt.w2i,
@@ -66,19 +71,14 @@ class Tagger:
             w, f, orig_words = [list(t) for t in zip(*sen)]
             yield [w, f, orig_words]
     
-    def extend_sen_data(self, result):
-        yield [list(i) for i in result]
-
-    def write_result(self, sen_data, result):
-        for res in self.extend_sen_data(result):
-            sen_data.append(res)
+    def write_result(self, sen_data):
         for item in izip(*(sen_data)):
             self.write_sen_result(item)
         self.output.write('\n')
 
     def write_sen_result(self, item):
         w, f, tp, res = item
-        i = int(res[0])
+        i = int(res)
         tag = self.i2t[i]
         self.output.write(u'{0}\t{1}\n'.format(tp, tag).encode('utf-8'))
         

@@ -27,7 +27,7 @@ class DebugTagger(Tagger):
 
     def write_sen_result(self, item):
         w, f, tp, res, t_out = item
-        tag = self.i2t[int(res[0])]
+        tag = self.i2t[int(res)]
         self.output.write(u'{0}\t{1}\n'.format(tp, tag).encode('utf-8'))
         
         tags = [self.i2t[i] for i in argsort([-t for t in t_out])][:5]
@@ -45,10 +45,12 @@ class DebugTagger(Tagger):
         close_f_dict = self.get_close_f_dict(f)
         self.output.write(u'{0}\n'.format(close_f_dict).encode('utf-8'))
 
-    def extend_sen_data(self, result):
-        for r in result:
-            yield [list(i) for i in result]
-    
+    def update_sen_data(self, sen_data, res):
+        result, tagger_out = res
+        sen_data.append(list(result.flatten()))
+        sen_data.append(tagger_out)
+        return sen_data
+
     def get_close_f_dict(self, f):
 
         close_f_dict = {}
