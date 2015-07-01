@@ -39,6 +39,8 @@ class Tagger:
 
         for sen_data in self.generate_sen_data():
             w, f, to_print = sen_data
+            if len(w) < 3:
+                continue
             window_words, window_feats = WordTaggerDataset.process_sentence(
                     w, f, self.wt.window_size, self.wt.featurizer)
             result = self.wt.tag_sen(window_words, 
