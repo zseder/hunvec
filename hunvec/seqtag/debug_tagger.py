@@ -53,7 +53,6 @@ class DebugTagger(Tagger):
         result, tagger_out = res
         sen_data.append(list(result.flatten()))
         sen_data.append(tagger_out)
-        return sen_data
 
     def get_close_f_dict(self, f):
 

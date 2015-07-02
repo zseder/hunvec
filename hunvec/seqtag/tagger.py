@@ -32,7 +32,6 @@ class Tagger:
         self.input_ = args.input_ 
         self.output = (open(args.output, 'w') if args.output is not None
                 else sys.stdout)
-        self.init_scores(args)
     
     def tag_sen(self, window_words, window_feats):
         return self.wt.tag_sen(window_words,
@@ -52,21 +51,9 @@ class Tagger:
             result = self.tag_sen(window_words, window_feats)
             sen_data = self.update_sen_data(sen_data, result)
             self.write_result(sen_data)
-            self.update_scores(to_print, result)
-        self.write_scores()    
      
-    def update_scores(self, to_print, result):
-        pass
-    
-    def init_scores(self, args):
-        pass
-
-    def write_scores(self):
-        pass
-
     def update_sen_data(self, sen_data, result):
         sen_data.append(list(result.flatten()))
-        return sen_data
 
     def generate_sen_data(self):
        
@@ -89,7 +76,11 @@ class Tagger:
         
 
 class GoldLabeledTagger(Tagger):
-    
+     
+    def __init__(self, args):
+        self.super().__init__(args)
+        self.init_scores(args)
+
     def init_scores(self, args):
         
         self.fscore = args.fscore
@@ -105,6 +96,10 @@ class GoldLabeledTagger(Tagger):
             self.good = 0.0
             self.bad = 0.0
     
+    def tag(self):
+        self.super().tag()
+        self.write_scores()
+
     def write_scores(self):
         if self.fscore:
             for l in self.counter.calculate_f():
@@ -117,7 +112,6 @@ class GoldLabeledTagger(Tagger):
     def process_sen(self, sen_data):
         
         self.super().process_sen
-        self.write_result(sen_data)
         self.update_scores(to_print, result)
 
 
