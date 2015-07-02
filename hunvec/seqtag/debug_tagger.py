@@ -24,6 +24,10 @@ class DebugTagger(Tagger):
         self.feat_vectors = self.wt.tagger.layers[0].layers[1]\
                 .get_params()[0].get_value()
         self.shifted_i2f = {}        
+    
+    def tag_sen(self, window_words, window_feats):
+        return self.wt.tag_sen(window_words,
+                window_feats, debug=True)
 
     def write_sen_result(self, item):
         w, f, tp, res, t_out = item

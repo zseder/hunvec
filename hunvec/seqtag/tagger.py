@@ -32,19 +32,24 @@ class Tagger:
         self.input_ = args.input_ 
         self.output = (open(args.output, 'w') if args.output is not None
                 else sys.stdout)
-        self.debug = False
         self.init_scores(args)
+    
+    def tag_sen(self, window_words, window_feats):
+        return self.wt.tag_sen(window_words,
+                window_feats, debug=False)
 
     def tag(self):
 
         for sen_data in self.generate_sen_data():
+            self.process_sen(sen_data)
+   
+    def process_sen(self, sen_data):
             w, f, to_print = sen_data
             if len(w) < 3:
                 continue
             window_words, window_feats = WordTaggerDataset.process_sentence(
                     w, f, self.wt.window_size, self.wt.featurizer)
-            result = self.wt.tag_sen(window_words, 
-                    window_feats, debug=self.debug)
+            result = self.tag_sen(window_words, window_feats)
             sen_data = self.update_sen_data(sen_data, result)
             self.write_result(sen_data)
             self.update_scores(to_print, result)
@@ -108,6 +113,13 @@ class GoldLabeledTagger(Tagger):
         if self.precision: 
             self.output.write('per word accuracy: {0}\n'.format(
                 self.good/(self.good + self.bad)))
+    
+    def process_sen(self, sen_data):
+        
+        self.super().process_sen
+        self.write_result(sen_data)
+        self.update_scores(to_print, result)
+
 
     def generate_sen_data(self):
         
