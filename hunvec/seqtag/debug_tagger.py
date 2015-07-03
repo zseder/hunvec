@@ -1,12 +1,11 @@
-import sys
 from itertools import izip
 
 import numpy
-from numpy import argsort, sort
+from numpy import argsort
 from scipy.spatial.distance import cdist
 
 from hunvec.seqtag.tagger import Tagger
-from hunvec.corpus.tagged_corpus import RawCorpus, TaggedCorpus
+from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.seqtag.tagger import create_argparser
 
 class DebugTagger(Tagger):
@@ -88,6 +87,7 @@ class DebugTagger(Tagger):
         index = f % self.wt.featurizer.total
         self.shifted_i2f[index] = self.wt.featurizer.i2f[index]
         return self.wt.featurizer.i2f[index].encode('utf-8')
+
 
 class DebugGoldLabeledTagger(DebugTagger):
     
