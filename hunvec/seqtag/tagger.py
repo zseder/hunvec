@@ -72,7 +72,7 @@ class Tagger:
 class GoldLabeledTagger(Tagger):
      
     def __init__(self, args):
-        self.super().__init__(args)
+        Tagger.__init__(self, args)
         self.init_scores(args)
 
     def init_scores(self, args):
@@ -91,11 +91,11 @@ class GoldLabeledTagger(Tagger):
             self.bad = 0.0
     
     def tag(self):
-        self.super().tag()
+        Tagger.tag(self)
         self.write_scores()
-
+    
     def tag_process_sen(self, sen_data):
-        self.super().process_sen(sen_data)
+        Tagger.tag_process_sen(self, sen_data)
         self.update_scores(sen_data)
 
     def write_scores(self):
@@ -118,9 +118,9 @@ class GoldLabeledTagger(Tagger):
             yield [w, f, to_print]
          
     def update_scores(self, sen_data):
-        to_print, result = sen_data[3:]
+        to_print, result = sen_data[2:]
         gold = map(lambda x:self.wt.t2i[x.split('\t')[1]], to_print)
-        result = map(lambda x:x[0], result)
+        #result = map(lambda x:x[0], result)
         if self.fscore:
             self.counter.process_sen(gold, result)
         if self.precision:

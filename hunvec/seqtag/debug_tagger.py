@@ -6,6 +6,7 @@ from scipy.spatial.distance import cdist
 
 from hunvec.seqtag.tagger import Tagger
 from hunvec.corpus.tagged_corpus import TaggedCorpus
+from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
 from hunvec.seqtag.tagger import create_argparser
 
 class DebugTagger(Tagger):
@@ -24,9 +25,11 @@ class DebugTagger(Tagger):
                 .get_params()[0].get_value()
         self.shifted_i2f = {}        
     
-    def tag_sen(self, window_words, window_feats):
-        return self.wt.tag_sen(window_words,
-                window_feats, debug=True)
+    def tag_sen(self, sen_data):
+        w, f = sen_data[:2]
+        window_words, window_feats = WordTaggerDataset.process_sentence(
+            w, f, self.wt.window_size, self.wt.featurizer)
+        return self.wt.tag_sen(window_words, window_feats, debug=True) 
 
     def write_sen_result(self, item):
         w, f, tp, res, t_out = item
@@ -60,8 +63,10 @@ class DebugTagger(Tagger):
             f_str = self.get_fstring(f_, shift=False)
             close_feats = self.get_close(self.close_feat_cache, f_,
                     self.feat_vectors)
+            
             cf_strings = filter(lambda x:x!=None, 
                     map(self.get_fstring, close_feats))
+
             close_f_dict[f_str] = cf_strings
         return close_f_dict    
 
@@ -76,7 +81,6 @@ class DebugTagger(Tagger):
         return close    
 
     def get_fstring(self, f, shift=True):
-        
         if not shift:
             return self.wt.featurizer.i2f[f]
         if f in self.shifted_i2f:
@@ -85,8 +89,8 @@ class DebugTagger(Tagger):
         if shift != self.wt.window_size:
             return None
         index = f % self.wt.featurizer.total
-        self.shifted_i2f[index] = self.wt.featurizer.i2f[index]
-        return self.wt.featurizer.i2f[index].encode('utf-8')
+        self.shifted_i2f[f] = self.wt.featurizer.i2f[index]
+        return repr(self.wt.featurizer.i2f[index])
 
 
 class DebugGoldLabeledTagger(DebugTagger):
@@ -97,7 +101,8 @@ class DebugGoldLabeledTagger(DebugTagger):
                 t2i=self.wt.t2i, use_unknown=True)
         for sen in tc.read():
             w, orig_t, f, orig_words = [list(t) for t in zip(*sen)]
-            to_print = map(lambda x: '{0}\t{1}'.format(x[0], self.i2t[x[1]]), 
+            to_print = map(lambda x: u'{0}\t{1}'.format(x[0], self.i2t[x[1]]), 
+
                     izip(orig_words, orig_t))
             yield [w, f, to_print]
 
