@@ -30,6 +30,7 @@ class Tagger:
         self.input_ = args.input_ 
         self.output = (open(args.output, 'w') if args.output is not None
                 else sys.stdout)
+        print 'haho'
     
     def tag_sen(self, sen_data):
         w, f = sen_data[:2]
