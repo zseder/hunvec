@@ -57,21 +57,30 @@ class DebugTagger(Tagger):
         sen_data.append(tagger_out)
 
     def get_close_f_dict(self, f):
-
+        
         close_f_dict = {}
         for f_ in f:
-            f_str = self.get_fstring(f_, shift=False)
+            f_str = self.get_fstring(f_)
+            print f_, f_str
             close_feats = self.get_close(self.close_feat_cache, f_,
-                    self.feat_vectors)
+                    self.feat_vectors, shift=True)
             
-            cf_strings = filter(lambda x:x!=None, 
-                    map(self.get_fstring, close_feats))
+            cf_strings = []
+            for i in close_feats:
+                r = self.get_fstring(i, shift=True)
+                if r != None:
+                    cf_strings.append(r)
+            #cf_strings = filter(lambda x:x!=None, 
+            #        map(self.get_fstring, close_feats), shift=True)
 
             close_f_dict[f_str] = cf_strings
         return close_f_dict    
 
-    def get_close(self, cache, item, vec):
-        
+    def get_close(self, cache, item, vec, shift=False):
+        if shift:
+            #print item
+            item += self.wt.featurizer.total*self.wt.window_size
+            #print item
         if item in cache:
             close = cache[item]
         else:
@@ -80,7 +89,7 @@ class DebugTagger(Tagger):
             cache[item] = close
         return close    
 
-    def get_fstring(self, f, shift=True):
+    def get_fstring(self, f, shift=False):
         if not shift:
             return self.wt.featurizer.i2f[f]
         if f in self.shifted_i2f:
