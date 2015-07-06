@@ -61,7 +61,6 @@ class DebugTagger(Tagger):
         close_f_dict = {}
         for f_ in f:
             f_str = self.get_fstring(f_)
-            print f_, f_str
             close_feats = self.get_close(self.close_feat_cache, f_,
                     self.feat_vectors, shift=True)
             
