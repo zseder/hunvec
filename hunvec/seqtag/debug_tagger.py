@@ -1,12 +1,11 @@
-import sys
 from itertools import izip
 
 import numpy
-from numpy import argsort, sort
+from numpy import argsort
 from scipy.spatial.distance import cdist
 
 from hunvec.seqtag.tagger import Tagger
-from hunvec.corpus.tagged_corpus import RawCorpus, TaggedCorpus
+from hunvec.corpus.tagged_corpus import TaggedCorpus
 from hunvec.seqtag.tagger import create_argparser
 
 class DebugTagger(Tagger):
@@ -60,14 +59,17 @@ class DebugTagger(Tagger):
         for f_ in f:
             f_str = self.get_fstring(f_, shift=False)
             close_feats = self.get_close(self.close_feat_cache, f_,
-                    self.feat_vectors)
+                    self.feat_vectors, shift=True)
+           
             cf_strings = filter(lambda x:x!=None, 
                     map(self.get_fstring, close_feats))
             close_f_dict[f_str] = cf_strings
         return close_f_dict    
 
-    def get_close(self, cache, item, vec):
+    def get_close(self, cache, item, vec, shift=False):
         
+        if shift:
+            item += self.wt.featurizer.total*self.wt.window_size
         if item in cache:
             close = cache[item]
         else:
