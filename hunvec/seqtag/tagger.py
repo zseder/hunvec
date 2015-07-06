@@ -2,7 +2,6 @@ import sys
 import argparse
 from itertools import izip
 
-from numpy import argsort, sort
 from pylearn2.utils import serial
 
 from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
@@ -26,31 +25,26 @@ class Tagger:
     def __init__(self, args):
         
         self.wt = serial.load(args.model)
-        i2w = dict([(v, k) for k, v in self.wt.w2i.iteritems()])
         self.i2t = [t for t, i in sorted(self.wt.t2i.items(), 
             key=lambda x: x[1])] 
         self.input_ = args.input_ 
         self.output = (open(args.output, 'w') if args.output is not None
                 else sys.stdout)
     
-    def tag_sen(self, window_words, window_feats):
-        return self.wt.tag_sen(window_words,
-                window_feats, debug=False)
+    def tag_sen(self, sen_data):
+        w, f = sen_data[:2]
+        window_words, window_feats = WordTaggerDataset.process_sentence(
+            w, f, self.wt.window_size, self.wt.featurizer)
+        return self.wt.tag_sen(window_words, window_feats, debug=False) 
 
     def tag(self):
-
         for sen_data in self.generate_sen_data():
-            self.process_sen(sen_data)
+            self.tag_process_sen(sen_data)
    
-    def process_sen(self, sen_data):
-            w, f, to_print = sen_data
-            if len(w) < 3:
-                continue
-            window_words, window_feats = WordTaggerDataset.process_sentence(
-                    w, f, self.wt.window_size, self.wt.featurizer)
-            result = self.tag_sen(window_words, window_feats)
-            sen_data = self.update_sen_data(sen_data, result)
-            self.write_result(sen_data)
+    def tag_process_sen(self, sen_data):
+        result = self.tag_sen(sen_data)
+        self.update_sen_data(sen_data, result)
+        self.write_result(sen_data)
      
     def update_sen_data(self, sen_data, result):
         sen_data.append(list(result.flatten()))
@@ -78,7 +72,7 @@ class Tagger:
 class GoldLabeledTagger(Tagger):
      
     def __init__(self, args):
-        self.super().__init__(args)
+        Tagger.__init__(self, args)
         self.init_scores(args)
 
     def init_scores(self, args):
@@ -97,8 +91,12 @@ class GoldLabeledTagger(Tagger):
             self.bad = 0.0
     
     def tag(self):
-        self.super().tag()
+        Tagger.tag(self)
         self.write_scores()
+    
+    def tag_process_sen(self, sen_data):
+        Tagger.tag_process_sen(self, sen_data)
+        self.update_scores(sen_data)
 
     def write_scores(self):
         if self.fscore:
@@ -109,12 +107,6 @@ class GoldLabeledTagger(Tagger):
             self.output.write('per word accuracy: {0}\n'.format(
                 self.good/(self.good + self.bad)))
     
-    def process_sen(self, sen_data):
-        
-        self.super().process_sen
-        self.update_scores(to_print, result)
-
-
     def generate_sen_data(self):
         
         tc = TaggedCorpus(self.input_, self.wt.featurizer, w2i=self.wt.w2i,
@@ -125,9 +117,10 @@ class GoldLabeledTagger(Tagger):
                     izip(orig_words, orig_t))
             yield [w, f, to_print]
          
-    def update_scores(self, to_print, result):
+    def update_scores(self, sen_data):
+        to_print, result = sen_data[2:]
         gold = map(lambda x:self.wt.t2i[x.split('\t')[1]], to_print)
-        result = map(lambda x:x[0], result)
+        #result = map(lambda x:x[0], result)
         if self.fscore:
             self.counter.process_sen(gold, result)
         if self.precision:
