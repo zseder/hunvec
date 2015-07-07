@@ -132,7 +132,6 @@ class GoldLabeledTagger(Tagger):
         to_print, result = sen_data[2:]
         wds = sen_data[0]
         gold = map(lambda x:self.wt.t2i[x.split('\t')[1]], to_print)
-        #result = map(lambda x:x[0], result)
         if self.fscore:
             self.counter.process_sen(gold, result)
         if self.precision:
