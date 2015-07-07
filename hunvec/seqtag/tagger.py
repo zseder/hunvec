@@ -18,6 +18,8 @@ def create_argparser():
                            help='if given, compute f1 score')
     argparser.add_argument('--precision', action='store_true',
                            help='if given, compute per word precision')
+    argparser.add_argument('--unknown', action='store_true',
+                           help='if given, count misclassified unknown words')
     return argparser.parse_args()
 
 class Tagger:
@@ -30,7 +32,6 @@ class Tagger:
         self.input_ = args.input_ 
         self.output = (open(args.output, 'w') if args.output is not None
                 else sys.stdout)
-        print 'haho'
     
     def tag_sen(self, sen_data):
         w, f = sen_data[:2]
@@ -68,6 +69,7 @@ class Tagger:
         i = int(res)
         tag = self.i2t[i]
         self.output.write(u'{0}\t{1}\n'.format(tp, tag).encode('utf-8'))
+        self.output.write(u'{0}\t{1}\n'.format(w, tag).encode('utf-8'))
         
 
 class GoldLabeledTagger(Tagger):
@@ -80,6 +82,7 @@ class GoldLabeledTagger(Tagger):
         
         self.fscore = args.fscore
         self.precision = args.precision
+        self.unknown = args.unknown
         if self.fscore:
             self.count_f1 = True
             self.i2t = [t for t, i in sorted(self.wt.t2i.items(),
@@ -90,6 +93,10 @@ class GoldLabeledTagger(Tagger):
             self.count_prec = True
             self.good = 0.0
             self.bad = 0.0
+        if self.unknown:
+            self.unknown_dict = {'known':{'good': 0,'bad': 0},
+                                 'unknown':{'good': 0, 'bad': 0}}
+            
     
     def tag(self):
         Tagger.tag(self)
@@ -107,6 +114,9 @@ class GoldLabeledTagger(Tagger):
         if self.precision: 
             self.output.write('per word accuracy: {0}\n'.format(
                 self.good/(self.good + self.bad)))
+        if self.unknown:
+            self.output.write('unknown word handling: {0}\n'.format(
+                repr(self.unknown_dict)))
     
     def generate_sen_data(self):
         
@@ -120,6 +130,7 @@ class GoldLabeledTagger(Tagger):
          
     def update_scores(self, sen_data):
         to_print, result = sen_data[2:]
+        wds = sen_data[0]
         gold = map(lambda x:self.wt.t2i[x.split('\t')[1]], to_print)
         #result = map(lambda x:x[0], result)
         if self.fscore:
@@ -128,6 +139,15 @@ class GoldLabeledTagger(Tagger):
             g = sum(map(lambda x: x[0]==x[1], zip(gold, result)))
             self.good += sum(map(lambda x: x[0]==x[1], zip(gold, result)))
             self.bad += len(gold) - g
+        if self.unknown:
+            self.unknown_dict['known']['good'] += sum(map(
+                lambda x: x[0]==x[1] and x[2]!=-1, zip(gold, result, wds)))
+            self.unknown_dict['known']['bad'] += sum(map(
+                lambda x: x[0]!=x[1] and x[2]!=-1, zip(gold, result, wds))) 
+            self.unknown_dict['unknown']['good'] += sum(map(
+                lambda x: x[0]==x[1] and x[2]==-1, zip(gold, result, wds)))
+            self.unknown_dict['unknown']['bad'] += sum(map(
+                lambda x: x[0]!=x[1] and x[2]==-1, zip(gold, result, wds)))
         
 def main():
     args = create_argparser()
