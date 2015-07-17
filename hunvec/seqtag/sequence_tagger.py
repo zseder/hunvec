@@ -2,6 +2,7 @@ import functools
 from itertools import izip
 
 import numpy
+from scipy.spatial.distance import cdist
 import gzip
 
 import theano
@@ -65,6 +66,7 @@ class SequenceTaggerNetwork(Model):
         self.lr_scale = lr_scale
         self.valid_stop = valid_stop
         self.reg_factors = reg_factors
+        self.close_cache = {}
         self.dropout_params = dropout_params
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
@@ -262,7 +264,6 @@ class SequenceTaggerNetwork(Model):
     def tag_sen(self, words, feats, debug=False, return_probs=False):
         if not hasattr(self, 'f'):
             self.prepare_tagging()
-        
         y = self.process_input(words, feats)
         tagger_out = y[2 + self.n_classes:]
         res = viterbi(self.start, self.A_value, self.end, tagger_out,
