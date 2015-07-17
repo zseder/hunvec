@@ -13,7 +13,6 @@ class DebugTagger(Tagger):
     
     def __init__(self, args):
         Tagger.__init__(self, args)
-        self.debug=True
         self.close_cache = {}
         self.close_feat_cache = {}
         self.i2w = [w for w, i in sorted(self.wt.w2i.iteritems(),
