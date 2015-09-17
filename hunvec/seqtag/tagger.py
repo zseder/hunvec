@@ -69,7 +69,6 @@ class Tagger:
         i = int(res)
         tag = self.i2t[i]
         self.output.write(u'{0}\t{1}\n'.format(tp, tag).encode('utf-8'))
-        self.output.write(u'{0}\t{1}\n'.format(w, tag).encode('utf-8'))
         
 
 class GoldLabeledTagger(Tagger):
