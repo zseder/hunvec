@@ -331,7 +331,7 @@ class SequenceTaggerNetwork(Model):
             m_lower[k.lower()] = m[k]
         # transform weight matrix with using self.w2i
         params = numpy.zeros(
-            self.tagger.layers[0].layers[0].get_param_vector().shape)
+            self.tagger.layers[0].layers[0].get_param_vector().shape, dtype=floatX)
         e = self.edim
         for w in self.w2i:
             if w in m_lower:
