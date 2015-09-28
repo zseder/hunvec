@@ -36,17 +36,16 @@ class TrainingPreprocesser:
         fh_replaced = open('{}_num_{}.cutoff_{}'.format(
             f, self.num, self.cutoff), 'w')
         for l in fh:
-            l = l.strip('\n').decode('utf-8').lower()
+            l = l.strip('\n').decode('utf-8')
             if len(l) == 0:
                 fh_replaced.write('\n')
                 continue
             w, t = l.split('\t')
             if self.num and self.num_regex.match(w) is not None:
                 w = '__NUM__'
-            if w in vocab:
-                fh_replaced.write(u'{}\t{}\n'.format(w, t).encode('utf-8'))
-                continue
-            fh_replaced.write(u'__RARE__\t{}\n'.format(w, t).encode('utf-8'))
+            elif w.lower() not in vocab:
+                w = '__RARE__'
+            fh_replaced.write(u'{}\t{}\n'.format(w, t).encode('utf-8'))    
 
     def create_replaced_files(self, training_f, devel_f, test_f):
         training_fh = open(training_f)
