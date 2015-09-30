@@ -43,9 +43,9 @@ class TrainingPreprocesser:
 
     def write_replaced_text(self, f):
         fh = open(f)
-
-        fh_replaced = open('{}_num_{}.cutoff_{}_dict_{}'.format(
-            f, self.num, self.cutoff, self.list_fn.split('/')[-1]), 'w')
+        
+        fh_replaced = open('{}_num_{}'.format(f, self.num), 'w')
+            #f, self.num, self.cutoff, self.list_fn.split('/')[-1]), 'w')
         for l in fh:
             numeric = False
             l = l.strip('\n').decode('utf-8')
@@ -84,7 +84,8 @@ def main():
     training_f = sys.argv[1]
     devel_f = sys.argv[2]
     test_f = sys.argv[3]
-    a = TrainingPreprocesser(list_fn='/home/pajkossy/Proj/hunvec/embedding/wsj_150e_left_important')
+    #a = TrainingPreprocesser(list_fn='/home/pajkossy/Proj/hunvec/embedding/wsj_150e_left_important')
+    a = TrainingPreprocesser()
     a.create_replaced_files(training_f, devel_f, test_f)
 
 if __name__ == '__main__':
