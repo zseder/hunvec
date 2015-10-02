@@ -11,7 +11,6 @@ class Preprocessor:
     as the set of the frequent words (occ.count > given cutoff value) in first input file (training data).
     In order to retain the upper-lower-capitalization information (for featurizing)
     there will be 3 different symbols for rare words.
-
     '''
     def __init__(self, num=True, cutoff=None, list_fn=None):
         self.num = num
