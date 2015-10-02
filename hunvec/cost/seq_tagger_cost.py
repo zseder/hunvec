@@ -46,7 +46,12 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
     def cost_seq(self, start, end, A, tagger_out, targets):
         # compute gold seq's score with using A and tagger_out
         gold_seq = T.argmax(targets, axis=1)
-        seq_score = start[gold_seq[0]] + end[gold_seq[-1]]
+
+        seq_score = start[gold_seq[0]]
+        if T.eq(gold_seq.shape[0], 1):
+            return seq_score + tagger_out[0][gold_seq[0]]
+
+        seq_score += end[gold_seq[-1]]
 
         # tagger_out_scores
         tout_chooser = lambda gold_i, i, tagger_out: tagger_out[i][gold_i]
@@ -89,6 +94,9 @@ class SeqTaggerCost(DefaultDataSpecsMixin, Cost):
     def combined_scores(self, start, end, A, tagger_out):
         # compute normalizer factor NF for this given training data
         start_M = tagger_out[0] + start
+        if T.eq(tagger_out.shape[0], 1):
+            return start_M, None, start_M
+
         combined_probs, updates = theano.scan(
             fn=self.combine_A_tout_scanner,
             sequences=[tagger_out[1:]],

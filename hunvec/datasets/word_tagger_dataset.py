@@ -58,6 +58,10 @@ class WordTaggerDataset(Dataset):
             return (self.X1[next_index][0],
                     self.X2[next_index][0],
                     self.y[next_index][0])
+        elif type(next_index) is numpy.ndarray:
+            return (self.X1[next_index[0]],
+                   self.X2[next_index[0]],
+                   self.y[next_index[0]])
         else:
             return self.X1[next_index], self.X2[next_index], self.y[next_index]
 
