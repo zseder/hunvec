@@ -59,7 +59,7 @@ class TrainingPreprocesser:
                     w1, num, w2 = m.groups()
                     w = w1 + '__NUM__' + w2
                     m = self.num_regex.match(w)
-            if numeric == False and self.vocab != None and
+            if numeric == False and self.vocab != None and\
             w.lower() not in self.vocab:
                 if w.isupper():
                     w = 'RAREWORD'
