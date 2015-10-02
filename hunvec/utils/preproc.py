@@ -2,8 +2,17 @@ import sys
 from collections import defaultdict
 import re
 
-class TrainingPreProcesser:
+class Preprocessor:
+    '''
+    for two standard prep. steps: replacing rares words with '_RARE_' symbol and 
+    numeral sequences with '_NUM_'symbol. 
+    
+    Words which are not replaced to 'RAREWORD' symbol can either be given in a list or
+    as the set of the frequent words (occ.count > given cutoff value) in first input file (training data).
+    In order to retain the upper-lower-capitalization information (for featurizing)
+    there will be 3 different symbols for rare words.
 
+    '''
     def __init__(self, num=True, cutoff=None, list_fn=None):
         self.num = num
         self.cutoff = cutoff
@@ -84,7 +93,7 @@ def main():
     training_f = sys.argv[1]
     devel_f = sys.argv[2]
     test_f = sys.argv[3]
-    a = TrainingPreProcesser()
+    a = Preprocessor()
     a.create_replaced_files(training_f, devel_f, test_f)
 
 if __name__ == '__main__':
