@@ -27,14 +27,14 @@ def create_argparser():
 def load_and_score(args):
     wt = serial.load(args.model)
     d, c = load_dataset(args.dataset)
-    if not (args.fscore ^ args.precision):
-        print 'needed on of the arguments: fscore, precision'
+    if not (args.fscore or args.precision):
+        print 'needed one of the arguments: fscore, precision'
     if args.fscore:
-        mode = 'f1'
-    elif args.precision:
-        mode = 'pwp'
-    for ds_name in args.sets:
-        print list(wt.get_score(d[ds_name], mode))
+        for ds_name in args.sets:
+            print list(wt.get_score(d[ds_name], 'f1'))
+    if args.precision:
+        for ds_name in args.sets:
+            print list(wt.get_score(d[ds_name], 'pwp'))
 
 
 def main():
