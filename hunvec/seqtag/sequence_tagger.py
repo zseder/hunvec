@@ -177,11 +177,11 @@ class SequenceTaggerNetwork(Model):
         for sen_w in self.dataset['train'].X1:
             seen['words'] |= reduce(
                 lambda x, y: set(x) | set(y),
-                sen_w)
+                sen_w, set())
         for sen_f in self.dataset['train'].X2:
             seen['feats'] |= reduce(
                 lambda x, y: set(x) | set(y),
-                sen_f)
+                sen_f, set())
         words = set(xrange(len(self.w2i)))
         feats = set(xrange(self.total_feats))
         self.notseen = {
