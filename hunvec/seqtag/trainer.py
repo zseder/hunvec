@@ -12,7 +12,7 @@ from hunvec.seqtag.extended_sequence_tagger import ExtendedSequenceTaggerNetwork
 
 class CSL2L(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, [float(_) for _ in values.split(',')])
+        setattr(namespace, self.dest, [int(_) for _ in values.split(',')])
 
 
 def create_argparser():
