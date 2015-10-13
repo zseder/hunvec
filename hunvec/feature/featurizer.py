@@ -16,7 +16,7 @@ def case_feature(word):
 
 
 def suffix_ngram_feature(word, n=3, end_index=None):
-    w2 = ("^" * n) + word.lower() + "$"
+    w2 = ("^" * n) + word.lower()
     s = 'ngr_{}:'.format(end_index)
     if end_index is not None:
         return s + w2[-n+end_index:end_index]
@@ -66,7 +66,7 @@ class Featurizer(object):
         self.feats = [
             fake_feat,
             case_feature,
-            lasts, last_but_ones, last_but_twos
+            #lasts, last_but_ones, last_but_twos
         ]
         # HACK2 fake_feat messes up results (maybe slows down SGD) so it is 
         # removed when there are others as well
