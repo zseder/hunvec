@@ -16,7 +16,7 @@ def case_feature(word):
 
 
 def suffix_ngram_feature(word, n=3, end_index=None):
-    w2 = ("^" * n) + word.lower() + "$"
+    w2 = ("^" * n) + word.lower()
     s = 'ngr_{}:'.format(end_index)
     if end_index is not None:
         return s + w2[-n+end_index:end_index]
