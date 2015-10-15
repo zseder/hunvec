@@ -14,8 +14,8 @@ class WordTaggerDataset(Dataset):
         super(WordTaggerDataset, self).__init__()
         self.X1 = X[0]
         self.X2 = X[1]
-        self.vocab_size = vocab_size + 2
         # -2: pad, -1: unknown
+        self.vocab_size = vocab_size + 2
         self.window_size = window_size
         ws = (window_size * 2 + 1)
         self.total_feats = total_feats * ws
@@ -140,7 +140,7 @@ class WordTaggerDataset(Dataset):
             vocab |= set(words)
             classes |= set(tags)
 
-            if len(words) < 2:
+            if len(words) < 0:
                 continue
 
             cwords.append(lwords)
