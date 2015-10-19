@@ -140,7 +140,7 @@ class WordTaggerDataset(Dataset):
             vocab |= set(words)
             classes |= set(tags)
 
-            if len(words) < 0:
+            if len(words) < 2:
                 continue
 
             cwords.append(lwords)
