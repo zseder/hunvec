@@ -337,12 +337,7 @@ class SequenceTaggerNetwork(Model):
             if w in m_lower:
                 v = m_lower[w]
                 i = self.w2i[w]
-                params[i*e:(i+1)*e] = v/10
-            else:
-                params[i*e:(i+1)*e] = vocab['UNKNOWN']/10
-        if 'PADDING' in vocab:
-            params[-2*e:-1*e] = vocab['PADDING']/10
-        if 'UNKNOWN' in vocab:
-            params[-1*e:] = vocab['UNKNOWN']/10
+                params[i*e:(i+1)*e] = v
+
         # set weights if the specific layer
         self.tagger.layers[0].layers[0].set_param_vector(params)
