@@ -18,7 +18,7 @@ do
         if [ "$epoch" != "$lastepoch" ];then
             date >> $res_file
             echo $epoch >> $res_file
-            python hunvec/seqtag/eval.py $dataset $model --sets test --fscore --precision >> $res_file; 
+            python hunvec/seqtag/eval.py $dataset $model --sets test --fscore --precision >> $res_file;
             lastepoch=$epoch
         fi
     fi

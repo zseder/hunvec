@@ -17,7 +17,8 @@ class DebugTagger(Tagger):
         self.close_feat_cache = {}
         self.i2w = [w for w, i in sorted(self.wt.w2i.iteritems(),
             key=lambda x: x[1])]
-        self.i2w.append("UNK")
+        self.i2w.append("PADDING")
+        self.i2w.append("UNKNOWN")
         self.word_vectors = self.wt.tagger.layers[0].layers[0]\
                 .get_params()[0].get_value()
         self.feat_vectors = self.wt.tagger.layers[0].layers[1]\
