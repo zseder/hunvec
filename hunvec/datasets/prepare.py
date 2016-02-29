@@ -8,8 +8,9 @@ from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
 
 
 def prepare_presplitted_corpus(train_fn, valid_fn, test_fn, featurizer,
-                               w2i, ws, num):
-    train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i, num=num)
+                               w2i, ws, num, train_unk):
+    train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i, num=num,
+            use_unknown=train_unk)
     valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
                            t2i=train_c.t2i, use_unknown=True, num=num)
     test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
@@ -26,17 +27,18 @@ def prepare_presplitted_corpus(train_fn, valid_fn, test_fn, featurizer,
 
 def init_presplitted_corpus(args):
     featurizer = Featurizer()
+    num = args.num
     w2i = (read_vocab(args.vocab, num=num) if args.vocab else None)
     res = []
     ws = args.ws
-    num = args.num
     # preprocess everything first, create datasets only after all preproc
     for i in xrange(len(args.train_file)):
         train_file = args.train_file[i]
         test_file = args.test_file[i]
         valid_file = args.valid_file[i]
         res.append(prepare_presplitted_corpus(
-            train_file, valid_file, test_file, featurizer, w2i, args.ws, num))
+            train_file, valid_file, test_file, featurizer, w2i, args.ws, num,
+            args.train_unk))
         w2i = res[-1][-1].w2i
 
     res2 = []
@@ -64,7 +66,8 @@ def init_split_corpus(args):
     ws = args.ws
     featurizer = Featurizer()
     w2i = (read_vocab(args.vocab, num=args.num) if args.vocab else None)
-    c = TaggedCorpus(args.train_file, featurizer, w2i=w2i, num=num)
+    c = TaggedCorpus(args.train_file, featurizer, w2i=w2i, num=num,
+            use_unknown=args.train_unk)
     res = WordTaggerDataset.prepare_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_classes = len(classes)
@@ -113,6 +116,8 @@ def create_argparser():
                            ' not in the training data')
     argparser.add_argument('--num', dest='num', action='store_true',
                            help='replace numeric sequences with NUM symbol' )
+    argparser.add_argument('--train_unk', dest='train_unk', action='store_true',
+            help='words in training file not in vocab file count as unknown')
     return argparser.parse_args()
 
 
