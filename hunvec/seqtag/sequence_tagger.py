@@ -31,7 +31,8 @@ class SequenceTaggerNetwork(Model):
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
-                 embedded_model=None, monitor_train=True, plot_monitor=None):
+                 embedded_model=None, monitor_train=True, plot_monitor=None,
+                 num=False):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -71,11 +72,8 @@ class SequenceTaggerNetwork(Model):
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
         self.monitor_train = monitor_train
-<<<<<<< HEAD
         self.num = num
-=======
         self.plot_monitor = plot_monitor
->>>>>>> master
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
 
