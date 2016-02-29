@@ -22,7 +22,7 @@ from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
 from hunvec.utils.viterbi import viterbi
 from hunvec.utils.fscore import FScCounter
-
+from hunvec.datasets.tools import replace_numerals
 
 class SequenceTaggerNetwork(Model):
     def __init__(self, dataset, w2i, t2i, featurizer,
@@ -31,7 +31,8 @@ class SequenceTaggerNetwork(Model):
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
-                 embedded_model=None, monitor_train=True, plot_monitor=None):
+                 embedded_model=None, monitor_train=True, plot_monitor=None,
+                 num=False):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -71,6 +72,7 @@ class SequenceTaggerNetwork(Model):
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
         self.monitor_train = monitor_train
+        self.num = num
         self.plot_monitor = plot_monitor
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
@@ -116,6 +118,7 @@ class SequenceTaggerNetwork(Model):
         d['dropout'] = self.dropout
         d['dropout_params'] = self.dropout_params
         d['monitor_train'] = self.monitor_train
+        d['num'] = self.num
         return d
 
     def fprop(self, data):
@@ -334,7 +337,10 @@ class SequenceTaggerNetwork(Model):
         m_lower = {}
         vocab = (m.vocab if hasattr(m, 'vocab') else m)
         for k in vocab:
-            m_lower[k.lower()] = m[k]
+            if self.num:
+                m_lower[replace_numerals(k).lower()] = m[k]
+            else:
+                m_lower[k.lower()] = m[k]
         # transform weight matrix with using self.w2i
         params = numpy.zeros(
             self.tagger.layers[0].layers[0].get_param_vector().shape, dtype=theano.config.floatX)
@@ -348,5 +354,4 @@ class SequenceTaggerNetwork(Model):
             params[-1*e:] = vocab['UNKNOWN']
         if 'PADDING' in vocab:
             params[-2*e:-1*e] = vocab['PADDING']
-        # set weights if the specific layer
         self.tagger.layers[0].layers[0].set_param_vector(params)

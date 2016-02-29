@@ -1,7 +1,21 @@
+import re
 from hunvec.utils.data_splitter import datasplit, shuffled_indices
 from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
 
-def read_vocab(fn, lower=True, decoder='utf-8'):
+num_pattern = re.compile('(.*?)([0-9]+).*')
+
+def replace_numerals(w):
+    matched = num_pattern.match(w)
+    i = 0
+    while matched:
+        i += 1
+        begin = w[:len(matched.groups()[0])]
+        end = w[len(matched.groups()[0]) + len(matched.groups()[1]):]
+        w = '{}_NUM_{}'.format(begin, end)
+        matched = num_pattern.match(w)
+    return w    
+
+def read_vocab(fn, lower=True, decoder='utf-8', num=False):
     d = {}
     for l in open(fn):
         w = l.strip()
@@ -9,6 +23,8 @@ def read_vocab(fn, lower=True, decoder='utf-8'):
             w = w.decode(decoder)
         if lower:
             w = w.lower()
+        if num:
+            w = replace_numerals(w)
         if w in d:
             continue
         d[w] = len(d)
