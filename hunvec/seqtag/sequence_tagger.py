@@ -2,7 +2,6 @@ import functools
 from itertools import izip
 
 import numpy
-from scipy.spatial.distance import cdist
 import gzip
 
 import theano
@@ -17,6 +16,7 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.training_algorithms.sgd import SGD, LinearDecayOverEpoch
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
+from pylearn2.train_extensions.plots import Plots, PlotManager
 
 from hunvec.seqtag.word_tagger import WordTaggerNetwork
 from hunvec.cost.seq_tagger_cost import SeqTaggerCost
@@ -31,7 +31,7 @@ class SequenceTaggerNetwork(Model):
                  lr_scale=False, lr_monitor_decay=False,
                  valid_stop=False, reg_factors=None, dropout=False,
                  dropout_params=None, embedding_init=None,
-                 embedded_model=None, monitor_train=True, num=False):
+                 embedded_model=None, monitor_train=True, plot_monitor=None):
         super(SequenceTaggerNetwork, self).__init__()
         self.vocab_size = dataset.vocab_size
         self.window_size = dataset.window_size
@@ -71,7 +71,11 @@ class SequenceTaggerNetwork(Model):
         self.dropout = dropout or self.dropout_params is not None
         self.hdims = hdims
         self.monitor_train = monitor_train
+<<<<<<< HEAD
         self.num = num
+=======
+        self.plot_monitor = plot_monitor
+>>>>>>> master
         if embedding_init is not None:
             self.set_embedding_weights(embedding_init)
 
@@ -229,13 +233,15 @@ class SequenceTaggerNetwork(Model):
                              cost=cost,
                              learning_rule=_learning_rule,
                              )
-        ext = []
-        if hasattr(self, 'learning_rate_adjustor'):
-            ext.append(self.learning_rate_adjustor)
-        self.trainer = Train(dataset=self.dataset['train'], model=self,
-                             algorithm=self.algorithm,
-                             extensions=ext)
+
         self.algorithm.setup(self, self.dataset['train'])
+        if self.plot_monitor:
+            cn = ["valid_objective", "test_objective"]
+            if self.monitor_train:
+                cn.append("train_objective")
+            plots = Plots(channel_names=cn, save_path=self.plot_monitor)
+            self.pm = PlotManager([plots], freq=1)
+            self.pm.setup(self, None, self.algorithm)
 
     def train(self):
         while True:
@@ -250,6 +256,9 @@ class SequenceTaggerNetwork(Model):
                                                   self.algorithm)
             if hasattr(self, 'learning_rate_adjustor'):
                 self.learning_rate_adjustor.on_monitor(
+                    self, self.dataset['valid'], self.algorithm)
+            if hasattr(self, 'pm'):
+                self.pm.on_monitor(
                     self, self.dataset['valid'], self.algorithm)
 
     def prepare_tagging(self):

@@ -43,6 +43,8 @@ def create_argparser():
     argparser.add_argument('--skip_monitor_train', action='store_true',
                            help='don\'t monitor on training set. Increases' +
                            ' training speed')
+    argparser.add_argument('--plot_monitor', help="filename where to plot"
+                           " objectives")
     argparser.add_argument('--dropout_params', action=CSL2L,
                            help='use dropout on inner network' +
                            'include probs per layer')
@@ -69,7 +71,8 @@ def init_network(args, dataset, corpus):
             featurizer=corpus.featurizer,
             edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
             embedding_init=args.embedding_init,
-            monitor_train=not args.skip_monitor_train)
+            monitor_train=not args.skip_monitor_train,
+            plot_monitor=args.plot_monitor)
         if args.embedded_model:
             embedded_model = serial.load(args.embedded_model)
             wt = ExtendedSequenceTaggerNetwork(embedded_model=embedded_model,
