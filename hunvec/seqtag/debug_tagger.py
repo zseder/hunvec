@@ -102,7 +102,7 @@ class DebugGoldLabeledTagger(DebugTagger):
     def generate_sen_data(self):
         
         tc = TaggedCorpus(self.input_, self.wt.featurizer, w2i=self.wt.w2i,
-                t2i=self.wt.t2i, use_unknown=True)
+                t2i=self.wt.t2i, use_unknown=True, num=self.wt.num)
         for sen in tc.read():
             w, orig_t, f, orig_words = [list(t) for t in zip(*sen)]
             to_print = map(lambda x: u'{0}\t{1}'.format(x[0], self.i2t[x[1]]), 

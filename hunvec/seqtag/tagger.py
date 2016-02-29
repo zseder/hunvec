@@ -54,7 +54,7 @@ class Tagger:
     def generate_sen_data(self):
        
         rc = RawCorpus(self.input_, self.wt.featurizer, w2i=self.wt.w2i,
-                use_unknown=True)
+                use_unknown=True, num=self.wt.num)
         for sen in rc.read():
             w, f, orig_words = [list(t) for t in zip(*sen)]
             yield [w, f, orig_words]
@@ -62,7 +62,7 @@ class Tagger:
     def write_result(self, sen_data):
         for item in izip(*(sen_data)):
             self.write_sen_result(item)
-        self.output.write('\n')
+        #self.output.write('\n')
 
     def write_sen_result(self, item):
         w, f, tp, res = item
@@ -120,7 +120,7 @@ class GoldLabeledTagger(Tagger):
     def generate_sen_data(self):
         
         tc = TaggedCorpus(self.input_, self.wt.featurizer, w2i=self.wt.w2i,
-                t2i=self.wt.t2i, use_unknown=True)
+                t2i=self.wt.t2i, use_unknown=True, num=self.wt.num)
         for sen in tc.read():
             w, orig_t, f, orig_words = [list(t) for t in zip(*sen)]
             to_print = map(lambda x: u'{0}\t{1}'.format(x[0], self.i2t[x[1]]), 

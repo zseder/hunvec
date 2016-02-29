@@ -1,7 +1,9 @@
+from hunvec.datasets.tools import replace_numerals
+
 class RawCorpus(object):
     
     def __init__(self, fn, featurizer=None, w2i=None,
-                 use_unknown=False):
+                 use_unknown=False, num=False):
         self.fn = fn
         self.featurizer = featurizer
         self.use_unknown = use_unknown
@@ -10,6 +12,7 @@ class RawCorpus(object):
 
         self.unk = -1
         self.w2i = ({} if w2i is None else w2i)
+        self.num = num
 
     def add_features(self, sen):
         new_sen = []
@@ -18,6 +21,13 @@ class RawCorpus(object):
             new_sen.append(word_data)
         return new_sen
 
+    def replace_nums_in_sentence(self, s):
+        new_sen = []
+        for word_data in s:
+            word_data[0] = replace_numerals(word_data[0])
+            new_sen.append(word_data)
+        return new_sen
+        
     def read(self, pre=False, needed_fields=[0]):
         s = []
         for l in open(self.fn):
@@ -25,6 +35,8 @@ class RawCorpus(object):
             if len(l.strip('\n')) == 0:
                 if not pre:
                     s = self.add_features(s)
+                    if self.num:
+                        s = self.replace_nums_in_sentence(s)
                     self.add_ints(s)
                 yield s
                 s = []
@@ -35,6 +47,8 @@ class RawCorpus(object):
         if len(s) > 0:
             if not pre:
                 s = self.add_features(s)
+                if self.num:
+                    s = self.replace_nums_in_sentence(s)
                 self.add_ints(s)
             yield s
 

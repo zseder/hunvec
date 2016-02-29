@@ -3,10 +3,11 @@ from hunvec.corpus.raw_corpus import RawCorpus
 class TaggedCorpus(RawCorpus):
 
     def __init__(self, fn, featurizer=None, w2i=None, t2i=None,
-            use_unknown=False):
+            use_unknown=False, num=False):
         RawCorpus.__init__(self, fn, featurizer, w2i,
                 use_unknown)
         self.t2i = ({} if t2i is None else t2i)
+        self.num = num
 
     def add_ints(self, sen):
         RawCorpus.add_ints(self, sen)

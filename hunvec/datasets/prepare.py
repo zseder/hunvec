@@ -8,12 +8,12 @@ from hunvec.datasets.word_tagger_dataset import WordTaggerDataset
 
 
 def prepare_presplitted_corpus(train_fn, valid_fn, test_fn, featurizer,
-                               w2i, ws):
-    train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i)
+                               w2i, ws, num):
+    train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i, num=num)
     valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
-                           t2i=train_c.t2i, use_unknown=True)
+                           t2i=train_c.t2i, use_unknown=True, num=num)
     test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
-                          t2i=valid_c.t2i, use_unknown=True)
+                          t2i=valid_c.t2i, use_unknown=True, num=num)
     train_res = WordTaggerDataset.prepare_corpus(
         train_c, window_size=ws)
     valid_res = WordTaggerDataset.prepare_corpus(
@@ -26,16 +26,17 @@ def prepare_presplitted_corpus(train_fn, valid_fn, test_fn, featurizer,
 
 def init_presplitted_corpus(args):
     featurizer = Featurizer()
-    w2i = (read_vocab(args.vocab) if args.vocab else None)
+    w2i = (read_vocab(args.vocab, num=num) if args.vocab else None)
     res = []
     ws = args.ws
+    num = args.num
     # preprocess everything first, create datasets only after all preproc
     for i in xrange(len(args.train_file)):
         train_file = args.train_file[i]
         test_file = args.test_file[i]
         valid_file = args.valid_file[i]
         res.append(prepare_presplitted_corpus(
-            train_file, valid_file, test_file, featurizer, w2i, args.ws))
+            train_file, valid_file, test_file, featurizer, w2i, args.ws, num))
         w2i = res[-1][-1].w2i
 
     res2 = []
@@ -62,8 +63,8 @@ def init_presplitted_corpus(args):
 def init_split_corpus(args):
     ws = args.ws
     featurizer = Featurizer()
-    w2i = (read_vocab(args.vocab) if args.vocab else None)
-    c = TaggedCorpus(args.train_file, featurizer, w2i=w2i)
+    w2i = (read_vocab(args.vocab, num=args.num) if args.vocab else None)
+    c = TaggedCorpus(args.train_file, featurizer, w2i=w2i, num=num)
     res = WordTaggerDataset.prepare_corpus(c, window_size=ws)
     words, feats, y, vocab, classes = res
     n_classes = len(classes)
@@ -110,6 +111,8 @@ def create_argparser():
                            'later external word vectors will be used, so ' +
                            'network needs to be prepared for words that are' +
                            ' not in the training data')
+    argparser.add_argument('--num', dest='num', action='store_true',
+                           help='replace numeric sequences with NUM symbol' )
     return argparser.parse_args()
 
 
