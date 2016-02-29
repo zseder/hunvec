@@ -69,7 +69,7 @@ def init_network(args, dataset, corpus):
             featurizer=corpus.featurizer,
             edim=args.embedding, fedim=args.feat_embedding, hdims=args.hidden,
             embedding_init=args.embedding_init,
-            monitor_train=not args.skip_monitor_train)
+            monitor_train=not args.skip_monitor_train, num=corpus.num)
         if args.embedded_model:
             embedded_model = serial.load(args.embedded_model)
             wt = ExtendedSequenceTaggerNetwork(embedded_model=embedded_model,
