@@ -119,6 +119,7 @@ class SequenceTaggerNetwork(Model):
         d['dropout_params'] = self.dropout_params
         d['monitor_train'] = self.monitor_train
         d['num'] = self.num
+        d['plot_monitor'] = self.plot_monitor
         return d
 
     def fprop(self, data):
