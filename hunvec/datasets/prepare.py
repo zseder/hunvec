@@ -12,9 +12,11 @@ def prepare_presplitted_corpus(train_fn, valid_fn, test_fn, featurizer,
     train_c = TaggedCorpus(train_fn, featurizer, w2i=w2i, num=num,
             use_unknown=train_unk)
     valid_c = TaggedCorpus(valid_fn, featurizer, w2i=train_c.w2i,
-                           t2i=train_c.t2i, use_unknown=True, num=num)
+                           t2i=train_c.t2i, use_unknown=True, num=num,
+                           use_unknown_tags=True)
     test_c = TaggedCorpus(test_fn, featurizer, w2i=valid_c.w2i,
-                          t2i=valid_c.t2i, use_unknown=True, num=num)
+                          t2i=valid_c.t2i, use_unknown=True, num=num,
+                          use_unknown_tags=True)
     train_res = WordTaggerDataset.prepare_corpus(
         train_c, window_size=ws)
     valid_res = WordTaggerDataset.prepare_corpus(
