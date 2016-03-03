@@ -341,7 +341,7 @@ class SequenceTaggerNetwork(Model):
             if k in ['UNKNOWN', 'PADDING']:
                 continue
             if self.num:
-                m_lower[replace_numerals(k).lower()] = m[k]
+                m_lower[replace_numerals(k.lower())] = m[k]
             else:
                 m_lower[k.lower()] = m[k]
         # transform weight matrix with using self.w2i
