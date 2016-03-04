@@ -11,7 +11,7 @@ def replace_numerals(w):
         i += 1
         begin = w[:len(matched.groups()[0])]
         end = w[len(matched.groups()[0]) + len(matched.groups()[1]):]
-        w = '{}_NUM_{}'.format(begin, end)
+        w = '{}__num__{}'.format(begin, end)
         matched = num_pattern.match(w)
     return w    
 
