@@ -1,3 +1,6 @@
+## _Pylearn2_ (and _hunvec_) development end
+Unfortunately [_pylearn2_](http://deeplearning.net/software/pylearn2/) doesn't have any developers and they only plan to merge new pull requests, but they warn users not to expect any new features and they suggest users to use other libraries instead. We decided not to continue the development of _hunvec_ relying on a deprecated library. 
+
 ## Why use hunvec?
 
 hunvec is being developed to use neural networks in various nlp tasks.
